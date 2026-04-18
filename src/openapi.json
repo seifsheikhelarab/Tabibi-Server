@@ -1,0 +1,311 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Tabibi API",
+    "version": "1.0.0",
+    "description": "Healthcare CRM API - Backend Next (Bun/Express/Prisma/PostgreSQL)"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": { "status": "ok", "timestamp": "2026-04-09T00:00:00.000Z" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatbot/chat": {
+      "post": {
+        "summary": "Chat with AI assistant",
+        "description": "Send a message or image to get AI-powered health recommendations",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": { "type": "string", "description": "User message describing symptoms" },
+                  "image": { "type": "string", "format": "binary", "description": "Optional medical image/report" }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI response with recommended doctors",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Chat response",
+                  "data": {
+                    "reply": "Based on your symptoms, I recommend consulting a Dermatologist...",
+                    "doctors": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing message or image"
+          }
+        }
+      }
+    },
+    "/api/upload/image": {
+      "post": {
+        "summary": "Upload image",
+        "description": "Upload an image to Cloudinary",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "image": { "type": "string", "format": "binary" },
+                  "folder": { "type": "string", "description": "Optional folder name" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Image uploaded successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Image uploaded successfully",
+                  "data": {
+                    "publicId": "tabibi/abc123",
+                    "url": "http://...",
+                    "secureUrl": "https://...",
+                    "format": "jpg",
+                    "width": 800,
+                    "height": 600
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file provided"
+          }
+        }
+      }
+    },
+    "/api/upload/file": {
+      "post": {
+        "summary": "Upload file",
+        "description": "Upload any file type to Cloudinary",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": { "type": "string", "format": "binary" },
+                  "folder": { "type": "string" },
+                  "resourceType": { "type": "string", "enum": ["image", "video", "raw", "auto"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File uploaded successfully"
+          },
+          "400": {
+            "description": "No file provided"
+          }
+        }
+      }
+    },
+    "/api/upload/{publicId}": {
+      "delete": {
+        "summary": "Delete file",
+        "description": "Delete a file from Cloudinary by public ID",
+        "parameters": [
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File deleted successfully"
+          },
+          "400": {
+            "description": "Public ID is required"
+          }
+        }
+      }
+    },
+    "/api/payments/create-intent": {
+      "post": {
+        "summary": "Create payment intent",
+        "description": "Create a payment intent with Stripe or Razorpay",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["appointmentId", "amount", "currency", "provider"],
+                "properties": {
+                  "appointmentId": { "type": "string" },
+                  "amount": { "type": "number", "minimum": 1 },
+                  "currency": { "type": "string", "example": "USD" },
+                  "provider": { "type": "string", "enum": ["STRIPE", "RAZORPAY"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment intent created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "paymentId": "pi_xxx",
+                  "amount": 100,
+                  "currency": "USD",
+                  "provider": "STRIPE",
+                  "clientSecret": "pi_xxx_secret"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported provider"
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/stripe": {
+      "post": {
+        "summary": "Stripe webhook",
+        "description": "Receive Stripe payment webhook events",
+        "responses": {
+          "200": {
+            "description": "Webhook received"
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/razorpay": {
+      "post": {
+        "summary": "Razorpay webhook",
+        "description": "Receive Razorpay payment webhook events",
+        "responses": {
+          "200": {
+            "description": "Webhook received"
+          }
+        }
+      }
+    },
+    "/api/patients": {
+      "get": {
+        "summary": "List patients",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of patients"
+          }
+        }
+      }
+    },
+    "/api/doctors": {
+      "get": {
+        "summary": "List doctors",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "specialization", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of doctors"
+          }
+        }
+      }
+    },
+    "/api/appointments": {
+      "get": {
+        "summary": "List appointments",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of appointments"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create appointment",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Appointment created"
+          }
+        }
+      }
+    },
+    "/api/auth/whoami": {
+      "get": {
+        "summary": "Get current session",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Session data"
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

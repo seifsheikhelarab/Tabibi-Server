@@ -1,0 +1,655 @@
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  name          String?
+  phone         String?
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  role          Role     @default(MEMBER)
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  accounts    Account[]
+  sessions    Session[]
+  memberships Member[]
+  crmTasks    CrmTask[]
+
+  patients Patient[] @relation("UserToPatient")
+  doctors  Doctor[]  @relation("UserToDoctor")
+
+  invitations Invitation[]
+
+  @@index([email])
+  @@index([organizationId])
+  @@map("user")
+}
+
+model Account {
+  id            String   @id @default(cuid())
+  userId        String
+  providerId    String
+  accountId     String
+  password      String?
+  refresh_token String?  @db.Text
+  access_token  String?  @db.Text
+  expires_at    Int?
+  token_type    String?
+  scope         String?
+  id_token      String?  @db.Text
+  session_state String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  activeOrganizationId String?
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expires    DateTime
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([identifier, value])
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members        Member[]
+  users          User[]
+  patients       Patient[]
+  doctors        Doctor[]
+  appointments   Appointment[]
+  patientRecords PatientRecord[]
+  prescriptions  Prescription[]
+  referrals      Referral[]
+  pharmacies     Pharmacy[]
+  labs           Lab[]
+  crmTasks       CrmTask[]
+  reviews        DoctorReview[]
+  integrations   Integration[]
+
+  metadata    String?
+  invitations Invitation[]
+
+  @@index([slug])
+  @@map("organization")
+}
+
+model Member {
+  id             String           @id @default(cuid())
+  userId         String
+  organizationId String
+  role           OrganizationRole @default(MEMBER)
+  createdAt      DateTime         @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+  @@map("member")
+}
+
+// ============= Domain Models =============
+
+model Patient {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId         String
+  user           User         @relation("UserToPatient", fields: [userId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  firstName      String
+  lastName       String?
+  email          String?
+  phone          String?
+  dateOfBirth    DateTime?
+  gender         Gender?
+  address        String?   @db.Text
+  city           String?
+  state          String?
+  pincode        String?
+  bloodGroup     String?
+  allergies      String?   @db.Text
+  medicalHistory String?   @db.Text
+
+  appointments   Appointment[]
+  patientRecords PatientRecord[]
+  prescriptions  Prescription[]
+  referrals      Referral[]
+  reviews        DoctorReview[]
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Doctor {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId         String
+  user           User         @relation("UserToDoctor", fields: [userId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  firstName      String
+  lastName       String?
+  email          String?
+  phone          String?
+  specialization String
+  qualification  String?
+  experience     Int?
+  bio            String?  @db.Text
+  fees           Decimal? @db.Decimal(10, 2)
+  image          String?
+  isAvailable    Boolean  @default(true)
+
+  appointments   Appointment[]
+  availabilities DoctorAvailability[]
+  patientRecords PatientRecord[]
+  prescriptions  Prescription[]
+  reviews        DoctorReview[]
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([specialization])
+}
+
+model DoctorAvailability {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  doctorId  String
+  doctor    Doctor  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek Int // 0 = Sunday, 6 = Saturday
+  startTime String // HH:mm format
+  endTime   String // HH:mm format
+  isActive  Boolean @default(true)
+
+  slots DoctorSlot[]
+
+  @@index([doctorId])
+}
+
+model DoctorSlot {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  availabilityId String
+  availability   DoctorAvailability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  date           DateTime
+  startTime      String
+  endTime        String
+  isBooked       Boolean            @default(false)
+
+  @@index([availabilityId])
+  @@index([date])
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patientId       String
+  patient         Patient      @relation(fields: [patientId], references: [id])
+  doctorId        String
+  doctor          Doctor       @relation(fields: [doctorId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdByUserId String
+
+  appointmentDate    DateTime
+  startTime          String
+  endTime            String
+  status             AppointmentStatus @default(PENDING)
+  type               AppointmentType   @default(CHECKUP)
+  reason             String?           @db.Text
+  notes              String?           @db.Text
+  cancellationReason String?
+
+  slotId String? @unique
+
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentId     String?
+  paymentAmount Decimal?      @db.Decimal(10, 2)
+  paymentProof  String? // Screenshot URL for Instapay
+  paymentMethod String? // e.g., 'INSTAPAY', 'CASH'
+
+  rating        Int?
+  review        DoctorReview?
+
+  history AppointmentHistory[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([organizationId])
+  @@index([appointmentDate])
+  @@index([status])
+}
+
+model AppointmentHistory {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  status          AppointmentStatus
+  notes           String?           @db.Text
+  changedByUserId String
+
+  @@index([appointmentId])
+}
+
+model DoctorReview {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rating  Int // 1-5
+  comment String? @db.Text
+
+  doctorId String
+  doctor   Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@index([patientId])
+  @@index([organizationId])
+}
+
+model PatientRecord {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id])
+  doctorId       String
+  doctor         Doctor       @relation(fields: [doctorId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  visitDate      DateTime
+  chiefComplaint String?  @db.Text
+  diagnosis      String?  @db.Text
+  notes          String?  @db.Text
+  vitalSigns     String?  @db.Text // JSON string
+  attachments    String[] // URLs
+
+  prescriptions Prescription[]
+  referrals     Referral[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([organizationId])
+}
+
+model Prescription {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patientId      String
+  patient        Patient        @relation(fields: [patientId], references: [id])
+  doctorId       String
+  doctor         Doctor         @relation(fields: [doctorId], references: [id])
+  recordId       String?
+  record         PatientRecord? @relation(fields: [recordId], references: [id])
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  status       PrescriptionStatus @default(DRAFT)
+  medicines    String             @db.Text // JSON string
+  notes        String?            @db.Text
+  followUpDate DateTime?
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([organizationId])
+}
+
+model Referral {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patientId      String
+  patient        Patient        @relation(fields: [patientId], references: [id])
+  recordId       String?
+  record         PatientRecord? @relation(fields: [recordId], references: [id])
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type       ReferralType
+  pharmacyId String?
+  pharmacy   Pharmacy?      @relation(fields: [pharmacyId], references: [id])
+  labId      String?
+  lab        Lab?           @relation(fields: [labId], references: [id])
+  notes      String?        @db.Text
+  status     ReferralStatus @default(PENDING)
+
+  @@index([patientId])
+  @@index([organizationId])
+}
+
+model Pharmacy {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name     String
+  email    String?
+  phone    String?
+  address  String? @db.Text
+  city     String?
+  state    String?
+  pincode  String?
+  isActive Boolean @default(true)
+
+  referrals Referral[]
+
+  @@index([organizationId])
+}
+
+model Lab {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name     String
+  email    String?
+  phone    String?
+  address  String? @db.Text
+  city     String?
+  state    String?
+  pincode  String?
+  isActive Boolean @default(true)
+
+  referrals Referral[]
+
+  @@index([organizationId])
+}
+
+model CrmTask {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedToUserId String?
+  assignedToUser   User?         @relation(fields: [assignedToUserId], references: [id])
+
+  title       String
+  patientName String?
+  description String?       @db.Text
+  status      CrmTaskStatus @default(OPEN)
+  priority    Priority      @default(MEDIUM)
+  dueDate     DateTime?
+
+  @@index([organizationId])
+  @@index([assignedToUserId])
+  @@index([status])
+}
+
+model Integration {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type        IntegrationType
+  name        String
+  credentials String          @db.Text // Encrypted JSON
+  isActive    Boolean         @default(true)
+
+  webhooks Webhook[]
+  syncLogs SyncLog[]
+
+  @@index([organizationId])
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  integrationId String
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  url      String
+  events   String[] // Event types to trigger on
+  secret   String?
+  isActive Boolean  @default(true)
+
+  deliveries WebhookDelivery[]
+
+  @@index([integrationId])
+}
+
+model WebhookDelivery {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  webhookId String
+  webhook   Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  status       String
+  statusCode   Int?
+  requestBody  String  @db.Text
+  responseBody String? @db.Text
+  error        String? @db.Text
+
+  @@index([webhookId])
+}
+
+model SyncLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  integrationId String
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  status           SyncStatus
+  direction        SyncDirection
+  recordsProcessed Int?
+  recordsFailed    Int?
+  error            String?       @db.Text
+
+  @@index([integrationId])
+}
+
+// ============= Enums =============
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  DOCTOR
+  RECEPTIONIST
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+  DOCTOR
+  RECEPTIONIST
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AppointmentType {
+  CHECKUP
+  FOLLOWUP
+  EMERGENCY
+  CONSULTATION
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFYING // Manual proof uploaded, waiting for admin
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PrescriptionStatus {
+  DRAFT
+  FINALIZED
+}
+
+enum ReferralType {
+  PHARMACY
+  LAB
+  RADIOLOGY
+}
+
+enum ReferralStatus {
+  PENDING
+  SENT
+  COMPLETED
+  EXPIRED
+}
+
+enum CrmTaskStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum IntegrationType {
+  STRIPE
+  RAZORPAY
+  CLOUDINARY
+  GOOGLE_CALENDAR
+  CUSTOM
+}
+
+enum SyncStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum SyncDirection {
+  PUSH
+  PULL
+  BIDIRECTIONAL
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  inviterId      String
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
+}
