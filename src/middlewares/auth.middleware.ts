@@ -144,8 +144,13 @@ export const requireActiveOrganization = () => asyncHandler<AuthenticatedRequest
 
 export const requireRole = (...allowedRoles: OrganizationRole[]) => {
     return asyncHandler<AuthenticatedRequest>(async (req: AuthenticatedRequest, _res, next) => {
+        const activeOrganizationId = req.session.activeOrganizationId;
+        
         const membership = await prisma.member.findFirst({
-            where: { userId: req.user.id }
+            where: { 
+                userId: req.user.id,
+                organizationId: activeOrganizationId
+            }
         });
 
         if (!membership) {
@@ -178,6 +183,7 @@ export const requireRole = (...allowedRoles: OrganizationRole[]) => {
 };
 
 export const requireAdmin = () => requireRole(OrganizationRole.OWNER, OrganizationRole.ADMIN);
+export const requireOwner = () => requireRole(OrganizationRole.OWNER);
 export const requireDoctor = () => requireRole(OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.DOCTOR);
 export const requireReceptionist = () => requireRole(OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.RECEPTIONIST);
 export const requireMember = () => requireRole(OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.DOCTOR, OrganizationRole.RECEPTIONIST, OrganizationRole.MEMBER);

@@ -24,6 +24,8 @@ router.post('/sign-in/email', asyncHandler(async (req, res) => {
             return ResponseHandler.error(res, 'Invalid credentials', ErrorCode.INVALID_CREDENTIALS, 401);
         }
 
+        const activeOrgId = (signInResult as any).session?.activeOrganizationId;
+        
         const user = await prisma.user.findUnique({
             where: { email },
             include: {
@@ -37,7 +39,8 @@ router.post('/sign-in/email', asyncHandler(async (req, res) => {
             return ResponseHandler.error(res, 'User not found', ErrorCode.USER_NOT_FOUND, 401);
         }
 
-        const membership = user.memberships[0];
+        // Find membership for active org, or first membership
+        let membership = user.memberships.find(m => m.organizationId === activeOrgId) || user.memberships[0];
         const role = membership?.role || 'MEMBER';
 
         return ResponseHandler.success(res, {

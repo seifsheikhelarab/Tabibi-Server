@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { protect, requireActiveOrganization, type AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
+import { protect, requireActiveOrganization, requireAdmin, requireOwner, type AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 import { validateRequest } from '../../middlewares/validation.middleware.js';
 import { asyncHandler } from '../../middlewares/error.middleware.js';
 import { ResponseHandler } from '../../utils/response.util.js';
@@ -15,7 +15,7 @@ import { createCrmTaskSchema, updateCrmTaskSchema } from './crm.schemas.js';
 
 const router = Router();
 
-router.get('/summary', protect, requireActiveOrganization(), asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/summary', protect, requireActiveOrganization(), requireAdmin(), asyncHandler(async (req: AuthenticatedRequest, res) => {
     const organizationId = req.session.activeOrganizationId;
 
     const [total, open, done, inProgress, highPriorityPending] = await Promise.all([
@@ -44,13 +44,14 @@ router.get('/summary', protect, requireActiveOrganization(), asyncHandler(async 
     });
 }));
 
-router.get('/', protect, requireActiveOrganization(), getCrmTasks);
-router.get('/:id', protect, requireActiveOrganization(), getCrmTaskById);
+router.get('/', protect, requireActiveOrganization(), requireAdmin(), getCrmTasks);
+router.get('/:id', protect, requireActiveOrganization(), requireAdmin(), getCrmTaskById);
 router.post(
     '/',
     protect,
     validateRequest(createCrmTaskSchema),
     requireActiveOrganization(),
+    requireAdmin(),
     createCrmTask
 );
 router.put(
@@ -58,8 +59,9 @@ router.put(
     protect,
     validateRequest(updateCrmTaskSchema),
     requireActiveOrganization(),
+    requireAdmin(),
     updateCrmTask
 );
-router.delete('/:id', protect, requireActiveOrganization(), deleteCrmTask);
+router.delete('/:id', protect, requireActiveOrganization(), requireOwner(), deleteCrmTask);
 
 export default router;

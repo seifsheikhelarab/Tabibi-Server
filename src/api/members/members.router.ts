@@ -1,14 +1,19 @@
 import { Router } from 'express';
-import { protect, type AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
+import { protect, requireActiveOrganization, type AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 import { ResponseHandler } from '../../utils/response.util.js';
 import prisma from '../../config/prisma.config.js';
 import { asyncHandler } from '../../middlewares/error.middleware.js';
 
 const membersRouter = Router();
 
-membersRouter.get('/me', protect, asyncHandler(async (req: AuthenticatedRequest, res) => {
+membersRouter.get('/me', protect, requireActiveOrganization(), asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const activeOrganizationId = req.session.activeOrganizationId;
+    
     const membership = await prisma.member.findFirst({
-        where: { userId: req.user.id },
+        where: { 
+            userId: req.user.id,
+            organizationId: activeOrganizationId
+        },
         include: {
             organization: {
                 select: {
