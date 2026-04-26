@@ -155,7 +155,7 @@ export const requireRole = (...allowedRoles: OrganizationRole[]) => {
         const membership = await prisma.member.findFirst({
             where: { 
                 userId: req.user.id,
-                organizationId: activeOrganizationId
+                organizationId: activeOrganizationId as string
             }
         });
 

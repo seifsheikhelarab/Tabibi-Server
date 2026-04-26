@@ -110,6 +110,7 @@ model Organization {
   invitations    Invitation[]
   members        Member[]
   users          User[]
+  patients       Patient[]
 
   @@index([slug])
   @@map("organization")
@@ -135,6 +136,7 @@ model Patient {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   userId         String          @unique
+  organizationId String?
   firstName      String
   lastName       String?
   email          String?
@@ -154,6 +156,9 @@ model Patient {
   prescriptions Prescription[]
   referrals     Referral[]
   user          User            @relation("UserToPatient", fields: [userId], references: [id])
+  organization  Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
 }
 
 model Doctor {
