@@ -5,7 +5,7 @@ import type {
     AppointmentQueryInput,
     SubmitPaymentProofInput
 } from './appointment.schemas.js';
-import { AppointmentStatus } from '../../generated/prisma';
+import { AppointmentStatus } from '../../generated/prisma/index.js';
 import logger from '../../utils/logger.util.js';
 
 export class AppointmentService {
