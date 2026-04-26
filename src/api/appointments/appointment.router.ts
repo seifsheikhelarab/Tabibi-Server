@@ -57,7 +57,7 @@ router.put(
     '/:id/cancel',
     protect,
     asyncHandler(async (req, res) => {
-        const { id } = req.params;
+        const id = req.params.id as string;
         const appointment = await prisma.appointment.findUnique({
             where: { id }
         });
