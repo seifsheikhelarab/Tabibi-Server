@@ -22,7 +22,7 @@ export const auth = betterAuth({
         'http://localhost:3000',
         'http://127.0.0.1:5173',
         "https://tabibi-client.vercel.app",
-        "https://tabibi-admin-one.vercel.app"
+        "https://tabibi-admin.vercel.app"
     ],
     emailAndPassword: {
         enabled: true,

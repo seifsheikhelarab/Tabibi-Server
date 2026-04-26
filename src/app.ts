@@ -59,7 +59,7 @@ app.use(
             'http://localhost:3000', 
             'http://127.0.0.1:5173',
             'https://tabibi-client.vercel.app',
-            'https://tabibi-admin-one.vercel.app'
+            'https://tabibi-admin.vercel.app'
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         credentials: true,
