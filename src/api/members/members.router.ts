@@ -12,7 +12,7 @@ membersRouter.get('/me', protect, requireActiveOrganization(), asyncHandler(asyn
     const membership = await prisma.member.findFirst({
         where: { 
             userId: req.user.id,
-            organizationId: activeOrganizationId
+            organizationId: activeOrganizationId as string
         },
         include: {
             organization: {

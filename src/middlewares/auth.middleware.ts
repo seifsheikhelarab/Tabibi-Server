@@ -121,7 +121,7 @@ export const protect = asyncHandler<AuthenticatedRequest>(
 );
 
 export const requireActiveOrganization = () => asyncHandler<AuthenticatedRequest>(
-    async (req: AuthenticatedRequest, _res, next) => {
+    async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
         const activeOrganizationId = req.session.activeOrganizationId;
 
         if (!activeOrganizationId) {

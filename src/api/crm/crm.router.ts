@@ -16,7 +16,7 @@ import { createCrmTaskSchema, updateCrmTaskSchema } from './crm.schemas.js';
 const router = Router();
 
 router.get('/summary', protect, requireActiveOrganization(), requireAdmin(), asyncHandler(async (req: AuthenticatedRequest, res) => {
-    const organizationId = req.session.activeOrganizationId;
+    const organizationId = req.session.activeOrganizationId as string;
 
     const [total, open, done, inProgress, highPriorityPending] = await Promise.all([
         prisma.crmTask.count({ where: { organizationId } }),

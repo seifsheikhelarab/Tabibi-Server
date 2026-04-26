@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { ratingService } from './rating.service.js';
 import { CreateReviewSchema, ReviewQuerySchema } from './rating.schemas.js';
 import logger from '../../utils/logger.util.js';
@@ -33,7 +33,7 @@ export class RatingController {
 
     async getDoctorReviews(req: Request, res: Response) {
         try {
-            const doctorId = req.params.doctorId;
+            const doctorId = req.params.doctorId as string;
             const query = ReviewQuerySchema.parse({
                 ...req.query,
                 doctorId,
@@ -49,7 +49,7 @@ export class RatingController {
 
     async getDoctorStats(req: Request, res: Response) {
         try {
-            const stats = await ratingService.getDoctorAverageRating(req.params.doctorId);
+            const stats = await ratingService.getDoctorAverageRating(req.params.doctorId as string);
             return res.json(stats);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });

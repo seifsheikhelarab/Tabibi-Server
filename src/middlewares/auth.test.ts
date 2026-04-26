@@ -31,7 +31,7 @@ describe('Auth Middleware', () => {
             const mockNext = mock(() => {});
 
             try {
-                await middleware(mockReq() as any, mockRes() as any, mockNext);
+                await (middleware as any)()(mockReq() as any, mockRes() as any, mockNext);
             } catch (error: any) {
                 expect(error.message).toContain('No active organization found');
             } finally {
@@ -67,7 +67,7 @@ describe('Auth Middleware', () => {
             };
             
             try {
-                await middleware(req, mockRes() as any, mockNext);
+                await (middleware as any)()(req, mockRes() as any, mockNext);
             } catch (e) {
                 // Expected to throw if prisma mock doesn't work in test
             } finally {
