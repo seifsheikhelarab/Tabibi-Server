@@ -8,7 +8,7 @@ import {
     updateLab,
     deleteLab
 } from './lab.controller.js';
-import { createLabSchema, updateLabSchema } from './lab.schemas.ts';
+import { createLabSchema, updateLabSchema } from './lab.schemas.js';
 
 const router = Router();
 
