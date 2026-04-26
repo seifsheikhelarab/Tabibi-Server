@@ -16,6 +16,7 @@ export const referralQuerySchema = z.object({
     page: z.coerce.number().min(1).default(1),
     limit: z.coerce.number().min(1).max(100).default(20),
     patientId: z.string().optional(),
+    doctorId: z.string().optional(),
     type: z.enum(['PHARMACY', 'LAB', 'RADIOLOGY']).optional(),
     status: z.enum(['PENDING', 'SENT', 'COMPLETED', 'EXPIRED']).optional(),
     organizationId: z.string().optional()

@@ -22,9 +22,12 @@ export const doctorQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(100).default(20),
     search: z.string().optional(),
     specialization: z.string().optional(),
-    isAvailable: z.boolean().optional(),
+    isAvailable: z.coerce.boolean().optional(),
+    city: z.string().optional(),
+    minRating: z.coerce.number().optional(),
+    maxFees: z.coerce.number().optional(),
     organizationId: z.string().optional(),
-    allowPublic: z.boolean().optional()
+    allowPublic: z.coerce.boolean().optional()
 });
 
 export const availabilitySchema = z.object({

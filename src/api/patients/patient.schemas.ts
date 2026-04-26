@@ -14,7 +14,6 @@ export const createPatientSchema = z.object({
     bloodGroup: z.any().optional(),
     allergies: z.any().optional(),
     medicalHistory: z.any().optional(),
-    organizationId: z.any().optional(),
     userId: z.any().optional(),
     image: z.any().optional()
 });
@@ -25,7 +24,7 @@ export const patientQuerySchema = z.object({
     page: z.coerce.number().min(1).default(1),
     limit: z.coerce.number().min(1).max(100).default(20),
     search: z.string().optional(),
-    organizationId: z.string().optional()
+    doctorId: z.string().optional()
 });
 
 export type CreatePatientInput = z.infer<typeof createPatientSchema>;

@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -9,28 +8,24 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  emailVerified Boolean  @default(false)
-  name          String?
-  phone         String?
-  image         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  role          Role     @default(MEMBER)
-
+  id             String        @id @default(cuid())
+  email          String        @unique
+  emailVerified  Boolean       @default(false)
+  name           String?
+  phone          String?
+  image          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  role           Role          @default(MEMBER)
   organizationId String?
+  crmTasks       CrmTask[]
+  doctors        Doctor[]      @relation("UserToDoctor")
+  patients       Patient[]     @relation("UserToPatient")
+  accounts       Account[]
+  invitations    Invitation[]
+  memberships    Member[]
+  sessions       Session[]
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  accounts    Account[]
-  sessions    Session[]
-  memberships Member[]
-  crmTasks    CrmTask[]
-
-  patients Patient[] @relation("UserToPatient")
-  doctors  Doctor[]  @relation("UserToDoctor")
-
-  invitations Invitation[]
 
   @@index([email])
   @@index([organizationId])
@@ -38,28 +33,26 @@ model User {
 }
 
 model Account {
-  id            String   @id @default(cuid())
-  userId        String
-  providerId    String
-  accountId     String
-  password      String?
-  refresh_token String?  @db.Text
-  access_token  String?  @db.Text
-  expires_at    Int?
-  token_type    String?
-  scope         String?
-  id_token      String?  @db.Text
-  session_state String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id                    String    @id @default(cuid())
+  userId                String
+  providerId            String
+  accountId             String
+  password              String?
+  refresh_token         String?
+  access_token          String?
+  expires_at            Int?
+  token_type            String?
+  scope                 String?
+  id_token              String?
+  session_state         String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   accessToken           String?
   refreshToken          String?
   idToken               String?
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, accountId])
   @@index([userId])
@@ -67,18 +60,16 @@ model Account {
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id                   String   @id @default(cuid())
+  token                String   @unique
+  userId               String
+  expiresAt            DateTime
+  ipAddress            String?
+  userAgent            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
   activeOrganizationId String?
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("session")
@@ -89,10 +80,9 @@ model Verification {
   identifier String
   value      String
   expires    DateTime
-
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([identifier, value])
   @@index([identifier])
@@ -100,29 +90,26 @@ model Verification {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  logo      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  members        Member[]
-  users          User[]
-  patients       Patient[]
-  doctors        Doctor[]
+  id             String          @id @default(cuid())
+  name           String
+  slug           String          @unique
+  logo           String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  metadata       String?
   appointments   Appointment[]
-  patientRecords PatientRecord[]
-  prescriptions  Prescription[]
-  referrals      Referral[]
-  pharmacies     Pharmacy[]
-  labs           Lab[]
   crmTasks       CrmTask[]
+  doctors        Doctor[]
   reviews        DoctorReview[]
   integrations   Integration[]
-
-  metadata    String?
-  invitations Invitation[]
+  labs           Lab[]
+  patientRecords PatientRecord[]
+  pharmacies     Pharmacy[]
+  prescriptions  Prescription[]
+  referrals      Referral[]
+  invitations    Invitation[]
+  members        Member[]
+  users          User[]
 
   @@index([slug])
   @@map("organization")
@@ -134,9 +121,8 @@ model Member {
   organizationId String
   role           OrganizationRole @default(MEMBER)
   createdAt      DateTime         @default(now())
-
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, organizationId])
   @@index([userId])
@@ -144,53 +130,38 @@ model Member {
   @@map("member")
 }
 
-// ============= Domain Models =============
-
 model Patient {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  userId         String
-  user           User         @relation("UserToPatient", fields: [userId], references: [id])
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
+  id             String          @id @default(cuid())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  userId         String          @unique
   firstName      String
   lastName       String?
   email          String?
-  phone          String?
-  dateOfBirth    DateTime?
-  gender         Gender?
-  address        String?   @db.Text
-  city           String?
-  state          String?
-  pincode        String?
-  bloodGroup     String?
-  allergies      String?   @db.Text
-  medicalHistory String?   @db.Text
-
-  appointments   Appointment[]
+  phone         String?
+  dateOfBirth   DateTime?
+  gender        Gender?
+  address      String?
+  city          String?
+  state         String?
+  pincode      String?
+  bloodGroup   String?
+  allergies   String?
+  medicalHistory String?
+  appointments Appointment[]
+  reviews      DoctorReview[]
   patientRecords PatientRecord[]
-  prescriptions  Prescription[]
-  referrals      Referral[]
-  reviews        DoctorReview[]
-
-  @@unique([userId, organizationId])
-  @@index([organizationId])
-  @@index([userId])
+  prescriptions Prescription[]
+  referrals     Referral[]
+  user          User            @relation("UserToPatient", fields: [userId], references: [id])
 }
 
 model Doctor {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id             String               @id @default(cuid())
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
   userId         String
-  user           User         @relation("UserToDoctor", fields: [userId], references: [id])
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
   firstName      String
   lastName       String?
   email          String?
@@ -198,16 +169,17 @@ model Doctor {
   specialization String
   qualification  String?
   experience     Int?
-  bio            String?  @db.Text
-  fees           Decimal? @db.Decimal(10, 2)
+  bio            String?
+  fees           Decimal?             @db.Decimal(10, 2)
   image          String?
-  isAvailable    Boolean  @default(true)
-
+  isAvailable    Boolean              @default(true)
   appointments   Appointment[]
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User                 @relation("UserToDoctor", fields: [userId], references: [id])
   availabilities DoctorAvailability[]
+  reviews        DoctorReview[]
   patientRecords PatientRecord[]
   prescriptions  Prescription[]
-  reviews        DoctorReview[]
 
   @@unique([userId, organizationId])
   @@index([organizationId])
@@ -216,71 +188,62 @@ model Doctor {
 }
 
 model DoctorAvailability {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id        String       @id @default(cuid())
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
   doctorId  String
-  doctor    Doctor  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  dayOfWeek Int // 0 = Sunday, 6 = Saturday
-  startTime String // HH:mm format
-  endTime   String // HH:mm format
-  isActive  Boolean @default(true)
-
-  slots DoctorSlot[]
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean      @default(true)
+  doctor    Doctor       @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  slots     DoctorSlot[]
 
   @@index([doctorId])
 }
 
 model DoctorSlot {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
+  id             String             @id @default(cuid())
+  createdAt      DateTime           @default(now())
   availabilityId String
-  availability   DoctorAvailability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
   date           DateTime
   startTime      String
   endTime        String
   isBooked       Boolean            @default(false)
+  availability   DoctorAvailability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 
   @@index([availabilityId])
   @@index([date])
 }
 
 model Appointment {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  patientId       String
-  patient         Patient      @relation(fields: [patientId], references: [id])
-  doctorId        String
-  doctor          Doctor       @relation(fields: [doctorId], references: [id])
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdByUserId String
-
+  id                 String               @id @default(cuid())
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  patientId          String
+  doctorId           String
+  organizationId     String
+  createdByUserId    String
   appointmentDate    DateTime
   startTime          String
   endTime            String
-  status             AppointmentStatus @default(PENDING)
-  type               AppointmentType   @default(CHECKUP)
-  reason             String?           @db.Text
-  notes              String?           @db.Text
+  status             AppointmentStatus    @default(PENDING)
+  type               AppointmentType      @default(CHECKUP)
+  reason             String?
+  notes              String?
   cancellationReason String?
-
-  slotId String? @unique
-
-  paymentStatus PaymentStatus @default(PENDING)
-  paymentId     String?
-  paymentAmount Decimal?      @db.Decimal(10, 2)
-  paymentProof  String? // Screenshot URL for Instapay
-  paymentMethod String? // e.g., 'INSTAPAY', 'CASH'
-
-  rating        Int?
-  review        DoctorReview?
-
-  history AppointmentHistory[]
+  slotId             String?              @unique
+  paymentStatus      PaymentStatus        @default(PENDING)
+  paymentId          String?
+  paymentAmount      Decimal?             @db.Decimal(10, 2)
+  rating             Int?
+  paymentMethod      String?
+  paymentProof       String?
+  doctor             Doctor               @relation(fields: [doctorId], references: [id])
+  organization       Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient            Patient              @relation(fields: [patientId], references: [id])
+  history            AppointmentHistory[]
+  review             DoctorReview?
 
   @@index([patientId])
   @@index([doctorId])
@@ -290,38 +253,31 @@ model Appointment {
 }
 
 model AppointmentHistory {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
-  appointmentId String
-  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-
+  id              String            @id @default(cuid())
+  createdAt       DateTime          @default(now())
+  appointmentId   String
   status          AppointmentStatus
-  notes           String?           @db.Text
+  notes           String?
   changedByUserId String
+  appointment     Appointment       @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
   @@index([appointmentId])
 }
 
 model DoctorReview {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  rating  Int // 1-5
-  comment String? @db.Text
-
-  doctorId String
-  doctor   Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-
-  patientId String
-  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
-
-  appointmentId String      @unique
-  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-
+  id             String       @id @default(cuid())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  rating         Int
+  comment        String?
+  doctorId       String
+  patientId      String
+  appointmentId  String       @unique
   organizationId String
+  appointment    Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  doctor         Doctor       @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([doctorId])
   @@index([patientId])
@@ -329,26 +285,23 @@ model DoctorReview {
 }
 
 model PatientRecord {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id             String         @id @default(cuid())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   patientId      String
-  patient        Patient      @relation(fields: [patientId], references: [id])
   doctorId       String
-  doctor         Doctor       @relation(fields: [doctorId], references: [id])
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
   visitDate      DateTime
-  chiefComplaint String?  @db.Text
-  diagnosis      String?  @db.Text
-  notes          String?  @db.Text
-  vitalSigns     String?  @db.Text // JSON string
-  attachments    String[] // URLs
-
-  prescriptions Prescription[]
-  referrals     Referral[]
+  chiefComplaint String?
+  diagnosis      String?
+  notes          String?
+  vitalSigns     String?
+  attachments    String[]
+  doctor         Doctor         @relation(fields: [doctorId], references: [id])
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient        Patient        @relation(fields: [patientId], references: [id])
+  prescriptions  Prescription[]
+  referrals      Referral[]
 
   @@index([patientId])
   @@index([doctorId])
@@ -356,23 +309,21 @@ model PatientRecord {
 }
 
 model Prescription {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id             String             @id @default(cuid())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
   patientId      String
-  patient        Patient        @relation(fields: [patientId], references: [id])
   doctorId       String
-  doctor         Doctor         @relation(fields: [doctorId], references: [id])
   recordId       String?
-  record         PatientRecord? @relation(fields: [recordId], references: [id])
   organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  status       PrescriptionStatus @default(DRAFT)
-  medicines    String             @db.Text // JSON string
-  notes        String?            @db.Text
-  followUpDate DateTime?
+  status         PrescriptionStatus @default(DRAFT)
+  medicines      String
+  notes          String?
+  followUpDate   DateTime?
+  doctor         Doctor             @relation(fields: [doctorId], references: [id])
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient        Patient            @relation(fields: [patientId], references: [id])
+  record         PatientRecord?     @relation(fields: [recordId], references: [id])
 
   @@index([patientId])
   @@index([doctorId])
@@ -380,89 +331,79 @@ model Prescription {
 }
 
 model Referral {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id             String         @id @default(cuid())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   patientId      String
-  patient        Patient        @relation(fields: [patientId], references: [id])
   recordId       String?
-  record         PatientRecord? @relation(fields: [recordId], references: [id])
   organizationId String
+  type           ReferralType
+  pharmacyId     String?
+  labId          String?
+  notes          String?
+  status         ReferralStatus @default(PENDING)
+  lab            Lab?           @relation(fields: [labId], references: [id])
   organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  type       ReferralType
-  pharmacyId String?
-  pharmacy   Pharmacy?      @relation(fields: [pharmacyId], references: [id])
-  labId      String?
-  lab        Lab?           @relation(fields: [labId], references: [id])
-  notes      String?        @db.Text
-  status     ReferralStatus @default(PENDING)
+  patient        Patient        @relation(fields: [patientId], references: [id])
+  pharmacy       Pharmacy?      @relation(fields: [pharmacyId], references: [id])
+  record         PatientRecord? @relation(fields: [recordId], references: [id])
 
   @@index([patientId])
   @@index([organizationId])
 }
 
 model Pharmacy {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id             String       @id @default(cuid())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   organizationId String
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  state          String?
+  pincode        String?
+  isActive       Boolean      @default(true)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  name     String
-  email    String?
-  phone    String?
-  address  String? @db.Text
-  city     String?
-  state    String?
-  pincode  String?
-  isActive Boolean @default(true)
-
-  referrals Referral[]
+  referrals      Referral[]
 
   @@index([organizationId])
 }
 
 model Lab {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id             String       @id @default(cuid())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   organizationId String
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  state          String?
+  pincode        String?
+  isActive       Boolean      @default(true)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  name     String
-  email    String?
-  phone    String?
-  address  String? @db.Text
-  city     String?
-  state    String?
-  pincode  String?
-  isActive Boolean @default(true)
-
-  referrals Referral[]
+  referrals      Referral[]
 
   @@index([organizationId])
 }
 
 model CrmTask {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id               String        @id @default(cuid())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
   organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   assignedToUserId String?
+  title            String
+  description      String?
+  status           CrmTaskStatus @default(OPEN)
+  priority         Priority      @default(MEDIUM)
+  dueDate          DateTime?
+  patientName      String?
   assignedToUser   User?         @relation(fields: [assignedToUserId], references: [id])
-
-  title       String
-  patientName String?
-  description String?       @db.Text
-  status      CrmTaskStatus @default(OPEN)
-  priority    Priority      @default(MEDIUM)
-  dueDate     DateTime?
+  organization     Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
   @@index([assignedToUserId])
@@ -470,75 +411,80 @@ model CrmTask {
 }
 
 model Integration {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id             String          @id @default(cuid())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  type        IntegrationType
-  name        String
-  credentials String          @db.Text // Encrypted JSON
-  isActive    Boolean         @default(true)
-
-  webhooks Webhook[]
-  syncLogs SyncLog[]
+  type           IntegrationType
+  name           String
+  credentials    String
+  isActive       Boolean         @default(true)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  syncLogs       SyncLog[]
+  webhooks       Webhook[]
 
   @@index([organizationId])
 }
 
 model Webhook {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id            String            @id @default(cuid())
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
   integrationId String
-  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-
-  url      String
-  events   String[] // Event types to trigger on
-  secret   String?
-  isActive Boolean  @default(true)
-
-  deliveries WebhookDelivery[]
+  url           String
+  events        String[]
+  secret        String?
+  isActive      Boolean           @default(true)
+  integration   Integration       @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  deliveries    WebhookDelivery[]
 
   @@index([integrationId])
 }
 
 model WebhookDelivery {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
-  webhookId String
-  webhook   Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
-
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  webhookId    String
   status       String
   statusCode   Int?
-  requestBody  String  @db.Text
-  responseBody String? @db.Text
-  error        String? @db.Text
+  requestBody  String
+  responseBody String?
+  error        String?
+  webhook      Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
   @@index([webhookId])
 }
 
 model SyncLog {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
-  integrationId String
-  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-
+  id               String        @id @default(cuid())
+  createdAt        DateTime      @default(now())
+  integrationId    String
   status           SyncStatus
   direction        SyncDirection
   recordsProcessed Int?
   recordsFailed    Int?
-  error            String?       @db.Text
+  error            String?
+  integration      Integration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
 
   @@index([integrationId])
 }
 
-// ============= Enums =============
+model Invitation {
+  id             String       @id
+  organizationId String
+  email          String
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  inviterId      String
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
+}
 
 enum Role {
   OWNER
@@ -579,10 +525,10 @@ enum AppointmentType {
 
 enum PaymentStatus {
   PENDING
-  VERIFYING // Manual proof uploaded, waiting for admin
   PAID
   FAILED
   REFUNDED
+  VERIFYING
 }
 
 enum PrescriptionStatus {
@@ -635,21 +581,4 @@ enum SyncDirection {
   PUSH
   PULL
   BIDIRECTIONAL
-}
-
-model Invitation {
-  id             String       @id
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  email          String
-  role           String?
-  status         String       @default("pending")
-  expiresAt      DateTime
-  createdAt      DateTime     @default(now())
-  inviterId      String
-  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId])
-  @@index([email])
-  @@map("invitation")
 }

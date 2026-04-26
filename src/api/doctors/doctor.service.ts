@@ -28,18 +28,20 @@ export class DoctorService {
     }
 
     async findAll(query: DoctorQueryInput) {
-        const { page, limit, search, specialization, organizationId, isAvailable, allowPublic } = query;
+        const { page, limit, search, specialization, organizationId, isAvailable, allowPublic, city, maxFees } = query;
         const skip = (page - 1) * limit;
 
         const where = allowPublic
             ? {
                 ...(isAvailable !== undefined && { isAvailable }),
                 ...(specialization && { specialization }),
+                ...(maxFees && { fees: { lte: maxFees } }),
                 ...(search && {
                     OR: [
                         { firstName: { contains: search, mode: 'insensitive' as const } },
                         { lastName: { contains: search, mode: 'insensitive' as const } },
-                        { email: { contains: search, mode: 'insensitive' as const } }
+                        { specialization: { contains: search, mode: 'insensitive' as const } },
+                        { bio: { contains: search, mode: 'insensitive' as const } }
                     ]
                 })
             }
@@ -47,6 +49,7 @@ export class DoctorService {
                 ...(organizationId && { organizationId }),
                 ...(specialization && { specialization }),
                 ...(isAvailable !== undefined && { isAvailable }),
+                ...(maxFees && { fees: { lte: maxFees } }),
                 ...(search && {
                     OR: [
                         { firstName: { contains: search, mode: 'insensitive' as const } },
@@ -88,14 +91,20 @@ export class DoctorService {
                     id: d.id,
                     firstName: d.firstName,
                     lastName: d.lastName,
+                    name: `${d.firstName} ${d.lastName || ''}`.trim(),
                     email: d.email,
                     phone: d.phone,
                     specialization: d.specialization,
                     qualification: d.qualification,
                     experience: d.experience,
                     fees: d.fees,
+                    bio: d.bio,
                     image: d.image || d.user?.image || null,
+                    available: d.isAvailable,
                     isAvailable: d.isAvailable,
+                    location: "Location not listed",
+                    city: "",
+                    address: "",
                     createdAt: d.createdAt,
                     rating: totalRating,
                     numRatings: numRatings
@@ -131,6 +140,11 @@ export class DoctorService {
 
         return {
             ...doc,
+            name: `${doc.firstName} ${doc.lastName || ''}`.trim(),
+            available: doc.isAvailable,
+            location: "Location not listed",
+            degree: doc.qualification,
+            about: doc.bio,
             rating: aggregate._sum.rating || 0,
             numRatings: doc._count.reviews
         };

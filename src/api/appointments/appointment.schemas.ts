@@ -44,7 +44,8 @@ export const appointmentQuerySchema = z.object({
     status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW']).optional(),
     fromDate: z.string().datetime().optional(),
     toDate: z.string().datetime().optional(),
-    organizationId: z.string().optional()
+    organizationId: z.string().optional(),
+    userId: z.string().optional()
 });
 
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;

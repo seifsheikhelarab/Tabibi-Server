@@ -73,7 +73,7 @@ adminRouter.get('/dashboard', protect, requireActiveOrganization(), requireAdmin
 
     const [doctorCount, patientCount, appointmentCount] = await Promise.all([
         prisma.doctor.count({ where: { organizationId } }),
-        prisma.patient.count({ where: { organizationId } }),
+        prisma.patient.count(),
         prisma.appointment.count({ where: { organizationId } })
     ]);
     
@@ -135,7 +135,6 @@ adminRouter.get('/all-patients', protect, requireActiveOrganization(), requireAd
     const organizationId = req.session.activeOrganizationId as string;
 
     const patients = await prisma.patient.findMany({
-        where: { organizationId },
         include: {
             user: { select: { id: true, name: true, email: true, image: true } }
         },

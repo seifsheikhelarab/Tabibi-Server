@@ -75,7 +75,7 @@ describe('CRM Task API', () => {
         const taskData = {
             title: 'Follow up with patient',
             description: 'Schedule follow-up appointment for John Doe',
-            status: 'PENDING',
+            status: 'OPEN',
             priority: 'HIGH',
             dueDate: new Date(Date.now() + 86400000).toISOString(),
             assignedToUserId: testUserId
@@ -108,7 +108,7 @@ describe('CRM Task API', () => {
         const response = await request(app)
             .get('/api/crm')
             .set('Authorization', `Bearer ${authToken}`)
-            .query({ status: 'PENDING' });
+            .query({ status: 'OPEN' });
 
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body.data)).toBe(true);
@@ -162,7 +162,7 @@ describe('CRM Task API', () => {
 
     it('should complete a CRM task', async () => {
         const updateData = {
-            status: 'COMPLETED'
+            status: 'DONE'
         };
 
         const response = await request(app)
@@ -171,7 +171,7 @@ describe('CRM Task API', () => {
             .send(updateData);
 
         expect(response.status).toBe(200);
-        expect(response.body.status).toBe('COMPLETED');
+        expect(response.body.status).toBe('DONE');
     });
 
     it('should delete a CRM task', async () => {

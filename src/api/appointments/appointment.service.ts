@@ -51,14 +51,20 @@ export class AppointmentService {
     }
 
     async findAll(query: AppointmentQueryInput) {
-        const { page, limit, patientId, doctorId, status, fromDate, toDate, organizationId } = query;
+        const { page, limit, patientId, doctorId, status, fromDate, toDate, organizationId, userId } = query;
         const skip = (page - 1) * limit;
 
-        const where = {
-            organizationId,
+        const where: any = {
+            ...(organizationId && { organizationId }),
             ...(patientId && { patientId }),
             ...(doctorId && { doctorId }),
             ...(status && { status }),
+            ...(userId && {
+                OR: [
+                    { patient: { userId: userId } },
+                    { createdByUserId: userId }
+                ]
+            }),
             ...(fromDate || toDate ? {
                 appointmentDate: {
                     ...(fromDate && { gte: new Date(fromDate) }),
@@ -100,7 +106,7 @@ export class AppointmentService {
         ]);
 
         const formatted = appointments.map(apt => {
-            const date = apt.appointmentDate;
+            const date = new Date(apt.appointmentDate);
             const day = String(date.getDate()).padStart(2, '0');
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
@@ -108,6 +114,7 @@ export class AppointmentService {
             return {
                 _id: apt.id,
                 id: apt.id,
+                appointmentDate: apt.appointmentDate,
                 slotDate: `${day}_${month}_${year}`,
                 slotTime: apt.startTime,
                 endTime: apt.endTime,
@@ -120,11 +127,28 @@ export class AppointmentService {
                 amount: apt.paymentAmount ? Number(apt.paymentAmount) : 0,
                 reason: apt.reason,
                 notes: apt.notes,
+                rating: apt.rating,
+                doctor: {
+                    id: apt.doctor?.id,
+                    firstName: apt.doctor?.firstName,
+                    lastName: apt.doctor?.lastName,
+                    specialization: apt.doctor?.specialization,
+                    image: apt.doctor?.image || apt.doctor?.user?.image
+                },
+                doctorId: apt.doctor?.id,
                 docData: {
                     id: apt.doctor?.id || '',
                     name: `${apt.doctor?.firstName || ''} ${apt.doctor?.lastName || ''}`.trim(),
                     speciality: apt.doctor?.specialization || '',
                     image: apt.doctor?.image || apt.doctor?.user?.image || ''
+                },
+                patient: {
+                    id: apt.patient?.id,
+                    firstName: apt.patient?.firstName,
+                    lastName: apt.patient?.lastName,
+                    phone: apt.patient?.phone,
+                    email: apt.patient?.email,
+                    dateOfBirth: apt.patient?.dateOfBirth
                 },
                 userData: {
                     id: apt.patient?.id || '',

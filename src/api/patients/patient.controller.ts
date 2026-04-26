@@ -11,21 +11,15 @@ export const createPatient = asyncHandler(
     async (req: any, res) => {
         logger.debug({ message: 'createPatient called', body: req.body });
         
-        const organizationId = req.session?.activeOrganizationId || req.body.organizationId;
         const userId = req.user?.id || req.body.userId;
 
-        if (!organizationId) {
-            logger.warn('createPatient failed: Organization ID missing');
-            ResponseHandler.badRequest(res, 'Organization ID is required');
-            return;
-        }
         if (!userId) {
             logger.warn('createPatient failed: User ID missing');
             ResponseHandler.badRequest(res, 'User ID is required');
             return;
         }
 
-        const patient = await patientService.create({ ...req.body, organizationId, userId });
+        const patient = await patientService.create({ ...req.body, userId });
         ResponseHandler.created(res, patient);
     }
 );
@@ -38,15 +32,13 @@ export const getPatients = asyncHandler(
         });
 
         const userId = req.query.userId as string | undefined;
+        const doctorId = req.query.doctorId as string | undefined;
 
         let result;
         if (userId) {
-            const organizationId = req.session?.activeOrganizationId || req.user?.organizationId;
-            result = await patientService.findByUserId(userId, organizationId);
-        } else if (req.session?.activeOrganizationId) {
-            result = await patientService.findAll({ page, limit, organizationId: req.session.activeOrganizationId as string });
+            result = await patientService.findByUserId(userId);
         } else {
-            result = await patientService.findAll({ page, limit });
+            result = await patientService.findAll({ page, limit, doctorId });
         }
         ResponseHandler.success(res, result);
     }

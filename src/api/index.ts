@@ -21,7 +21,7 @@ import customAuthRouter from './auth/custom-auth.router.js';
 
 const router = Router();
 
-router.use('/auth', customAuthRouter);
+router.use('/legacy-auth', customAuthRouter);
 router.use('/patients', patientRouter);
 router.use('/doctors', doctorRouter);
 router.use('/appointments', appointmentRouter);

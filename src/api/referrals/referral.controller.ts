@@ -22,7 +22,9 @@ export const getReferrals = asyncHandler<AuthenticatedRequest>(
             limit: req.query.limit as string
         });
 
-        const result = await referralService.findAll({ page, limit, organizationId });
+        const doctorId = req.query.doctorId as string | undefined;
+
+        const result = await referralService.findAll({ page, limit, organizationId, doctorId });
         ResponseHandler.success(res, result);
     }
 );

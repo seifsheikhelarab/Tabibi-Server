@@ -7,12 +7,12 @@ import type {
 import logger from '../../utils/logger.util.js';
 
 export class PatientService {
-    async create(data: CreatePatientInput & { userId: string; organizationId: string }) {
-        const { userId, organizationId, dateOfBirth, firstName, lastName, email, phone, gender, address, city, state, pincode, bloodGroup, allergies, medicalHistory, image } = data;
+    async create(data: CreatePatientInput & { userId: string }) {
+        const { userId, dateOfBirth, firstName, lastName, email, phone, gender, address, city, state, pincode, bloodGroup, allergies, medicalHistory, image } = data;
         
         logger.info({
             message: 'Creating patient',
-            organizationId,
+            userId,
             firstName
         });
         
@@ -32,8 +32,7 @@ export class PatientService {
                 allergies,
                 medicalHistory,
                 image,
-                userId,
-                organizationId
+                userId
             }
         });
         
@@ -42,11 +41,10 @@ export class PatientService {
     }
 
     async findAll(query: PatientQueryInput) {
-        const { page, limit, search, organizationId } = query;
+        const { page, limit, search, doctorId } = query;
         const skip = (page - 1) * limit;
 
         const where = {
-            organizationId,
             ...(search && {
                 OR: [
                     { firstName: { contains: search, mode: 'insensitive' as const } },
@@ -54,6 +52,13 @@ export class PatientService {
                     { email: { contains: search, mode: 'insensitive' as const } },
                     { phone: { contains: search, mode: 'insensitive' as const } }
                 ]
+            }),
+            ...(doctorId && {
+                appointments: {
+                    some: {
+                        doctorId
+                    }
+                }
             })
         };
 
@@ -75,8 +80,7 @@ export class PatientService {
         logger.debug({
             message: 'Patients fetched',
             count: patients.length,
-            total,
-            organizationId
+            total
         });
 
         return {
@@ -109,13 +113,9 @@ export class PatientService {
         });
     }
 
-    async findByUserId(userId: string, organizationId?: string) {
-        const where: any = { userId };
-        if (organizationId) {
-            where.organizationId = organizationId;
-        }
+    async findByUserId(userId: string) {
         return prisma.patient.findFirst({
-            where
+            where: { userId }
         });
     }
 

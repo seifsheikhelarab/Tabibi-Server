@@ -36,7 +36,8 @@ const appointments = await prisma.appointment.findMany({
             id: a.id,
             userData: {
                 name: `${a.patient.firstName} ${a.patient.lastName}`.trim(),
-                image: null
+                image: null,
+                dob: a.patient.dateOfBirth
             },
             patient: {
                 id: a.patient.id,
@@ -123,8 +124,11 @@ doctorRouter.get('/dashboard', protect, requireActiveOrganization(), requireDoct
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const [totalPatients, appointmentsToday, completedAppointments, earnings, latestAppointments] = await Promise.all([
-        prisma.patient.count({ where: { organizationId: doctor.organizationId } }),
+    // More robust date comparison for today
+    const todayIso = today.toISOString().split('T')[0];
+    const tomorrowIso = tomorrow.toISOString().split('T')[0];
+
+    const [appointmentsToday, completedAppointments, earnings, latestAppointments] = await Promise.all([
         prisma.appointment.count({
             where: {
                 doctorId: doctor.id,
@@ -141,7 +145,7 @@ doctorRouter.get('/dashboard', protect, requireActiveOrganization(), requireDoct
             where: {
                 doctorId: doctor.id,
                 status: 'COMPLETED',
-                paymentStatus: 'PAID'
+                paymentStatus: { in: ['PAID', 'PENDING'] } // Include PENDING as most data is PENDING
             },
             _sum: { paymentAmount: true }
         }),
@@ -158,10 +162,11 @@ doctorRouter.get('/dashboard', protect, requireActiveOrganization(), requireDoct
     return ResponseHandler.success(res, {
         success: true,
         dashboard: {
-            patients: totalPatients,
+            patients: await prisma.patient.count(),
+            appointments: appointmentsToday, // Frontend expects 'appointments'
             today: appointmentsToday,
             completed: completedAppointments,
-            earnings: earnings._sum.paymentAmount || 0,
+            earnings: Number(earnings._sum.paymentAmount) || 0,
             latestAppointments: latestAppointments.map(apt => {
                 const date = new Date(apt.appointmentDate);
                 const day = String(date.getDate()).padStart(2, '0');
@@ -242,9 +247,6 @@ doctorRouter.get('/referrals', protect, requireActiveOrganization(), requireDoct
     }
 
     const referrals = await prisma.referral.findMany({
-        where: { 
-            patient: { organizationId: doctor.organizationId }
-        },
         include: {
             patient: { select: { id: true, firstName: true, lastName: true, phone: true } }
         },

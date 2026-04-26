@@ -23,12 +23,13 @@ export class ReferralService {
     }
 
     async findAll(query: ReferralQueryInput) {
-        const { page, limit, patientId, type, status, organizationId } = query;
+        const { page, limit, patientId, doctorId, type, status, organizationId } = query;
         const skip = (page - 1) * limit;
 
         const where = {
             organizationId,
             ...(patientId && { patientId }),
+            ...(doctorId && { doctorId }),
             ...(type && { type }),
             ...(status && { status })
         };

@@ -23,11 +23,7 @@ export const getCrmTasks = asyncHandler<AuthenticatedRequest>(
         });
 
         const result = await crmService.findAll({ page, limit, organizationId });
-        ResponseHandler.success(res, {
-            success: true,
-            tasks: result.data,
-            pagination: result.pagination
-        });
+        ResponseHandler.success(res, result);
     }
 );
 

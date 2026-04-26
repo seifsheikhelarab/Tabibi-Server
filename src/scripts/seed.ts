@@ -220,6 +220,7 @@ async function seed() {
         
         logger.info('Creating appointments...');
         const statuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+        const paymentStatuses = ['PENDING', 'PAID'];
         let appointmentCount = 0;
         
         for (let i = 0; i < 25; i++) {
@@ -228,6 +229,7 @@ async function seed() {
             const daysOffset = randomInt(-10, 10);
             const appointmentDate = new Date();
             appointmentDate.setDate(appointmentDate.getDate() + daysOffset);
+            const status = randomElement(statuses);
             
             await prisma.appointment.create({
                 data: {
@@ -238,13 +240,124 @@ async function seed() {
                     appointmentDate,
                     startTime: `${randomInt(9, 17).toString().padStart(2, '0')}:${randomElement(['00', '30'])}`,
                     endTime: `${randomInt(9, 17).toString().padStart(2, '0')}:${randomElement(['00', '30'])}`,
-                    status: randomElement(statuses) as any,
+                    status: status as any,
+                    paymentStatus: status === 'CANCELLED' ? 'PENDING' : randomElement(paymentStatuses) as any,
+                    paymentAmount: status !== 'CANCELLED' ? randomInt(200, 1000) : null,
+                    paymentMethod: status === 'COMPLETED' || Math.random() > 0.5 ? 'CASH' : 'CARD',
                     reason: `Regular ${randomElement(specializations)} consultation`,
                 }
             });
             appointmentCount++;
         }
         logger.info(`Created ${appointmentCount} appointments`);
+        
+        logger.info('Creating CRM tasks...');
+        const crmStatuses = ['OPEN', 'IN_PROGRESS', 'DONE'];
+        const crmPriorities = ['LOW', 'MEDIUM', 'HIGH'];
+        
+        for (let i = 0; i < 15; i++) {
+            await prisma.crmTask.create({
+                data: {
+                    title: `Task ${i + 1}: ${randomElement(['Follow up with patient', 'Send prescription', 'Update records', 'Review lab results', 'Schedule follow-up'])}`,
+                    description: `Description for CRM task ${i + 1}`,
+                    status: randomElement(crmStatuses) as any,
+                    priority: randomElement(crmPriorities) as any,
+                    dueDate: new Date(Date.now() + randomInt(-5, 14) * 24 * 60 * 60 * 1000),
+                    organizationId: organizationId,
+                }
+            });
+        }
+        logger.info('Created 15 CRM tasks');
+        
+        logger.info('Creating sample prescriptions...');
+        for (let i = 0; i < 10; i++) {
+            const doctor = randomElement(doctors);
+            const patient = randomElement(patients);
+            await prisma.prescription.create({
+                data: {
+                    patientId: patient.id,
+                    doctorId: doctor.id,
+                    organizationId: organizationId,
+                    notes: `Prescription ${i + 1} - Take medication as directed`,
+                    medicines: JSON.stringify([
+                        { name: 'Panadol', dosage: '500mg', frequency: 'Twice daily' },
+                        { name: 'Vitamin C', dosage: '1000mg', frequency: 'Once daily' }
+                    ]),
+                }
+            });
+        }
+        logger.info('Created 10 prescriptions');
+        
+        logger.info('Creating sample referrals...');
+        for (let i = 0; i < 10; i++) {
+            const patient = randomElement(patients);
+            await prisma.referral.create({
+                data: {
+                    patientId: patient.id,
+                    organizationId: organizationId,
+                    type: randomElement(['PHARMACY', 'LAB', 'RADIOLOGY'] as const),
+                    status: randomElement(['PENDING', 'SENT', 'COMPLETED'] as const),
+                    notes: `Referral for ${randomElement(specializations)} consultation`,
+                }
+            });
+        }
+        logger.info('Created 10 referrals');
+        
+        logger.info('Creating patient records...');
+        for (let i = 0; i < 25; i++) {
+            const doctor = randomElement(doctors);
+            const patient = randomElement(patients);
+            await prisma.patientRecord.create({
+                data: {
+                    patientId: patient.id,
+                    doctorId: doctor.id,
+                    organizationId: organizationId,
+                    visitDate: new Date(Date.now() - randomInt(0, 60) * 24 * 60 * 60 * 1000),
+                    chiefComplaint: randomElement(['Flu', 'Headache', 'Back pain', 'Annual checkup', 'Follow-up', 'Chest pain', 'Diabetes check', 'Skin rash']),
+                    diagnosis: randomElement(['Viral infection', 'Migraine', 'Muscle strain', 'Healthy', 'Recovering', 'Hypertension', 'Type 2 Diabetes', 'Allergic dermatitis']),
+                    notes: `Patient notes for visit ${i + 1}`,
+                    vitalSigns: JSON.stringify({
+                        bloodPressure: `${randomInt(110, 140)}/${randomInt(70, 90)}`,
+                        heartRate: randomInt(60, 100),
+                        temperature: 36.5 + Math.random(),
+                        weight: randomInt(50, 100)
+                    }),
+                }
+            });
+        }
+        logger.info('Created 25 patient records');
+        
+        logger.info('Creating pharmacies...');
+        for (let i = 0; i < 5; i++) {
+            await prisma.pharmacy.create({
+                data: {
+                    name: `${randomElement(['El', 'Al', 'City'])} Pharmacy ${i + 1}`,
+                    email: `pharmacy${i + 1}@tabibi.com`,
+                    phone: `01${randomInt(100000000, 999999999)}`,
+                    address: `${randomInt(1, 100)} ${randomElement(['Main', 'El', 'Ahmed'])} St`,
+                    city: randomElement(['Cairo', 'Alexandria', 'Giza', 'Mansoura']),
+                    isActive: true,
+                    organizationId: organizationId,
+                }
+            });
+        }
+        logger.info('Created 5 pharmacies');
+        
+        logger.info('Creating labs...');
+        for (let i = 0; i < 5; i++) {
+            await prisma.lab.create({
+                data: {
+                    name: `${randomElement(['Medical', 'Diagnostic', 'City'])} Lab ${i + 1}`,
+                    email: `lab${i + 1}@tabibi.com`,
+                    phone: `01${randomInt(100000000, 999999999)}`,
+                    address: `${randomInt(1, 100)} ${randomElement(['Main', 'El', 'Ahmed'])} St`,
+                    city: randomElement(['Cairo', 'Alexandria', 'Giza', 'Mansoura']),
+                    isActive: true,
+                    organizationId: organizationId,
+                }
+            });
+        }
+        logger.info('Created 5 labs');
         
         logger.info('===========================================');
         logger.info('SEED COMPLETED SUCCESSFULLY!');

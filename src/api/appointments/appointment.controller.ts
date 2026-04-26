@@ -24,6 +24,7 @@ export const createAppointment = asyncHandler<AuthenticatedRequest>(
 export const getAppointments = asyncHandler<AuthenticatedRequest>(
     async (req, res) => {
         const organizationId = req.session!.activeOrganizationId as string;
+        const userId = req.user!.id;
         const { page, limit } = getPagination({
             page: req.query.page as string,
             limit: req.query.limit as string
@@ -32,14 +33,29 @@ export const getAppointments = asyncHandler<AuthenticatedRequest>(
         const result = await appointmentService.findAll({
             page,
             limit,
-            organizationId
+            organizationId,
+            userId
         });
 
-        ResponseHandler.success(res, { 
-            success: true, 
-            appointments: result.data,
-            pagination: result.pagination
+        ResponseHandler.success(res, result);
+    }
+);
+
+export const getMyAppointments = asyncHandler<AuthenticatedRequest>(
+    async (req, res) => {
+        const userId = req.user!.id;
+        const { page, limit } = getPagination({
+            page: req.query.page as string,
+            limit: req.query.limit as string
         });
+
+        const result = await appointmentService.findAll({
+            page,
+            limit,
+            userId
+        });
+
+        ResponseHandler.success(res, result);
     }
 );
 

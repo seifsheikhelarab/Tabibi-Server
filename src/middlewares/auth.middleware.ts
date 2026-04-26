@@ -86,6 +86,12 @@ export const protect = asyncHandler<AuthenticatedRequest>(
         });
 
         if (!session) {
+            // Allow public access to doctor list and details
+            const isPublicDoctorRoute = req.method === 'GET' && (req.path === '/api/doctors' || req.path === '/api/doctors/' || /^\/api\/doctors\/[^\/]+$/.test(req.path));
+            if (isPublicDoctorRoute) {
+                return next();
+            }
+
             const ip = req.ip || req.socket.remoteAddress || 'unknown';
             logger.warn({
                 message: 'Authentication failed - invalid session',

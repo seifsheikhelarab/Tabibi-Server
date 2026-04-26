@@ -34,20 +34,21 @@ export const getDoctors = asyncHandler(
 
         const specialization = req.query.specialization as string | undefined;
         const isAvailable = req.query.isAvailable === 'true' ? true : req.query.isAvailable === 'false' ? false : undefined;
-
-        logger.debug({ message: 'isAvailable parsed', isAvailable });
-
-        const hasAuth = !!req.session?.activeOrganizationId;
-        
-        logger.debug({ message: 'Auth check', hasAuth, activeOrg: (req.session as any)?.activeOrganizationId });
+        const search = req.query.search as string | undefined;
+        const city = req.query.city as string | undefined;
+        const minRating = req.query.minRating ? Number(req.query.minRating) : undefined;
+        const maxFees = req.query.maxFees ? Number(req.query.maxFees) : undefined;
 
         const result = await doctorService.findAll({ 
             page, 
             limit, 
-            organizationId: hasAuth ? (req.session as any).activeOrganizationId : undefined,
             specialization,
             isAvailable,
-            allowPublic: !hasAuth
+            search,
+            city,
+            minRating,
+            maxFees,
+            allowPublic: true
         });
         
         logger.debug({ message: 'Service result', resultCount: result.data.length });
