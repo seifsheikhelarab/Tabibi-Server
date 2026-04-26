@@ -5,16 +5,7 @@ import type { Request, Response } from "express";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 const logger = pino({
-    level: isDevelopment ? "debug" : "info",
-    transport: isDevelopment ? {
-        target: 'pino-pretty',
-        options: {
-            colorize: true,
-            translateTime: "HH:MM:ss",
-            ignore: "pid,hostname,req,res,responseTime,response",
-            singleLine: true
-        }
-    } : undefined
+    level: isDevelopment ? "debug" : "info"
 });
 
 const httpLogger = pinoHttp({
