@@ -5,7 +5,7 @@ import type { Request, Response } from "express";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 const logger = pino({
-    level: isDevelopment ? "debug" : "info"
+    level: "info"
 });
 
 const httpLogger = pinoHttp({
@@ -16,7 +16,7 @@ const httpLogger = pinoHttp({
     customSuccessMessage: (req: Request, res: Response) => `${req.method} ${req.url} ${res.statusCode}`,
     customErrorMessage: (req: Request, _res: Response, err: Error | undefined) => `${req.method} ${req.url} - ${err?.message || "Error"}`,
     customProps: () => ({}),
-    useLevel: "info"
+    useLevel: "info",
 });
 export default logger;
 export { httpLogger };

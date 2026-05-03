@@ -9,21 +9,46 @@ function generateSlug(name: string): string {
     return `${base}-${random}`;
 }
 
-export const auth = betterAuth({
-    database: prismaAdapter(prisma, {
-        provider: "postgresql"
-    }),
-    baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
-    trustedOrigins: [
+const getBaseURL = () => {
+    if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}`;
+    }
+    return process.env.BETTER_AUTH_URL || 'http://localhost:3000';
+};
+
+const getTrustedOrigins = (): string[] => {
+    const defaults = [
         'http://localhost:5173',
         'http://localhost:5174', 
         'http://localhost:5175',
         'http://localhost:5176',
         'http://localhost:3000',
         'http://127.0.0.1:5173',
-        "https://tabibi-client.vercel.app",
-        "https://tabibi-admin.vercel.app"
-    ],
+        'https://tabibi-client.vercel.app',
+        'https://tabibi-admin.vercel.app',
+        'https://tabibi-server.vercel.app'
+    ];
+    
+    if (process.env.CORS_ORIGIN) {
+        const envOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
+        return [...new Set([...defaults, ...envOrigins])];
+    }
+    
+    return defaults;
+};
+
+export const auth = betterAuth({
+    database: prismaAdapter(prisma, {
+        provider: "postgresql"
+    }),
+    baseURL: getBaseURL(),
+    trustedOrigins: getTrustedOrigins(),
+    cookiePrefix: 'tabibi-auth',
+    advanced: {
+        generateId: () => {
+            return crypto.randomUUID();
+        }
+    },
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: false

@@ -49,28 +49,24 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 app.use('/api/payments/webhook/stripe', express.raw({ type: 'application/json' }), paymentRouter);
 
-app.use(
-    cors({
-        origin: [
-            'http://localhost:5173', 
-            'http://localhost:5174', 
-            'http://localhost:5175', 
-            'http://localhost:5176', 
-            'http://localhost:3000', 
-            'http://127.0.0.1:5173',
-            'https://tabibi-client.vercel.app',
-            'https://tabibi-admin.vercel.app'
-        ],
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        credentials: true,
-        allowedHeaders: ['Content-Type', 'Authorization', 'x-organization-id', 'atoken']
-    })
-);
+const corsOptions = {
+    origin: [
+        'http://localhost:5173', 
+        'http://localhost:5174', 
+        'http://localhost:3000', 
+        'https://tabibi-client.vercel.app',
+        'https://tabibi-admin.vercel.app',
+        'https://tabibi-server.vercel.app'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-organization-id', 'atoken']
+};
+
+app.use('/api/auth/*splat', cors(corsOptions), toNodeHandler(auth));
+app.use('/api', cors(corsOptions), apiRouter);
 
 app.use(pinoHttp({ logger }));
-
-app.use('/api/auth/*splat', toNodeHandler(auth));
-app.use('/api', apiRouter);
 
 app.use(httpLogger);
 app.use(notFoundHandler);
