@@ -56,6 +56,17 @@ export const auth = betterAuth({
             }
             : undefined
     },
+    advanced: {
+        defaultCookieAttributes: {
+            sameSite: "none",
+            secure: true,
+            partitioned: true
+        },
+        useSecureCookies: true,
+        crossSubDomainCookies: {
+            enabled: true
+        }
+    },
     plugins: [
         bearer(),
         organization({
