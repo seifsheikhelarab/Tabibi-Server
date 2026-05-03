@@ -7,25 +7,13 @@ import prisma from '../config/prisma.config.js';
 import logger from '../utils/logger.util.js';
 import { OrganizationRole } from '../generated/prisma/index.js';
 
-function getAuthHeaders(req: Request): Record<string, string> {
-    const headers: Record<string, string> = {};
+function prepareAuthHeaders(req: Request): Record<string, string | string[] | undefined> {
+    const headers = { ...req.headers };
     
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        headers['authorization'] = authHeader;
-    }
-    
-    const aToken = req.headers.atoken as string;
-    if (aToken && !headers['authorization']) {
-        headers['authorization'] = `Bearer ${aToken}`;
-    }
-    
-    const cookieHeader = req.headers.cookie as string;
-    if (cookieHeader && !headers['authorization']) {
-        const match = cookieHeader.match(/better-auth\.session_token=([^;]+)/);
-        if (match) {
-            headers['cookie'] = `better-auth.session_token=${match[1]}`;
-        }
+    // Support custom atoken header
+    const aToken = headers.atoken as string;
+    if (aToken && !headers.authorization) {
+        headers.authorization = `Bearer ${aToken}`;
     }
     
     return headers;
@@ -79,7 +67,7 @@ export const protect = asyncHandler<AuthenticatedRequest>(
             }
         }
 
-        const headers = getAuthHeaders(req);
+        const headers = prepareAuthHeaders(req);
         
         const session = await auth.api.getSession({
             headers: fromNodeHeaders(headers)
