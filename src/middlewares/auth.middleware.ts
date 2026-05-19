@@ -93,9 +93,10 @@ export const protect = asyncHandler<AuthenticatedRequest>(
         }
 
         req.user = session.user as SessionUser;
+        const headerOrgId = req.headers['x-organization-id'] as string;
         req.session = {
             ...session.session as SessionData,
-            activeOrganizationId: (session as any).activeOrganizationId
+            activeOrganizationId: (session as any).activeOrganizationId || headerOrgId
         };
 
         logger.debug({
@@ -110,7 +111,8 @@ export const protect = asyncHandler<AuthenticatedRequest>(
 
 export const requireActiveOrganization = () => asyncHandler<AuthenticatedRequest>(
     async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
-        const activeOrganizationId = req.session.activeOrganizationId;
+        const headerOrgId = req.headers['x-organization-id'] as string;
+        const activeOrganizationId = req.session.activeOrganizationId || headerOrgId;
 
         if (!activeOrganizationId) {
             const ip = req.ip || req.socket.remoteAddress || 'unknown';
@@ -124,6 +126,9 @@ export const requireActiveOrganization = () => asyncHandler<AuthenticatedRequest
                 'No active organization found in your session. Please select an organization.'
             );
         }
+
+        // Ensure it's populated on req.session for subsequent handlers
+        req.session.activeOrganizationId = activeOrganizationId;
 
         logger.debug({
             message: 'Organization access granted',

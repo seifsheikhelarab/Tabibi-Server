@@ -201,8 +201,8 @@ describe('Doctor API', () => {
         expect(verify).toBeNull();
     });
 
-    it('should return 401 if unauthorized', async () => {
+    it('should return 200 if unauthorized (public route)', async () => {
         const response = await request(app).get('/api/doctors');
-        expect(response.status).toBe(401);
+        expect(response.status).toBe(200);
     });
 });

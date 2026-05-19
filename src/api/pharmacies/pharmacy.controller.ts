@@ -15,7 +15,7 @@ export const createPharmacy = asyncHandler<AuthenticatedRequest>(
 
 export const getPharmacies = asyncHandler<AuthenticatedRequest>(
     async (req, res) => {
-        const organizationId = req.session!.activeOrganizationId as string;
+        const organizationId = (req as any).session?.activeOrganizationId as string | undefined;
         const { page, limit } = getPagination({
             page: req.query.page as string,
             limit: req.query.limit as string

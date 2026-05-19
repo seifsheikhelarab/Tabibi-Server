@@ -120,6 +120,7 @@ export class AppointmentService {
                 endTime: apt.endTime,
                 cancelled: apt.status === 'CANCELLED',
                 isCompleted: apt.status === 'COMPLETED',
+                status: apt.status,
                 payment: apt.paymentStatus === 'PAID',
                 paymentStatus: apt.paymentStatus,
                 paymentProof: apt.paymentProof,

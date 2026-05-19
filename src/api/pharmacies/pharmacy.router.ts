@@ -12,13 +12,10 @@ import { createPharmacySchema, updatePharmacySchema } from './pharmacy.schemas.j
 
 const router = Router();
 
-router.use(protect);
-router.use(requireActiveOrganization());
-
 router.get('/', getPharmacies);
 router.get('/:id', getPharmacyById);
-router.post('/', validateRequest(createPharmacySchema), createPharmacy);
-router.put('/:id', validateRequest(updatePharmacySchema), updatePharmacy);
-router.delete('/:id', deletePharmacy);
+router.post('/', protect, validateRequest(createPharmacySchema), requireActiveOrganization(), createPharmacy);
+router.put('/:id', protect, validateRequest(updatePharmacySchema), requireActiveOrganization(), updatePharmacy);
+router.delete('/:id', protect, requireActiveOrganization(), deletePharmacy);
 
 export default router;

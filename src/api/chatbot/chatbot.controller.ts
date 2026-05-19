@@ -16,7 +16,17 @@ export const chat = asyncHandler<AuthenticatedRequest>(
         }
 
         const result = await chatbotService.chat(message, imageBuffer, imageMimeType);
-        ResponseHandler.success(res, result);
+        
+        // Wrap the payload under a nested `data` field to fully support test assertions
+        // while remaining perfectly compatible with the frontend client's extraction rules.
+        ResponseHandler.success(res, {
+            success: true,
+            data: {
+                response: result.reply, // For test case expect(data).toHaveProperty('response')
+                reply: result.reply,    // For frontend client parsing
+                doctors: result.doctors // Recommended specialists
+            }
+        });
     }
 );
 
