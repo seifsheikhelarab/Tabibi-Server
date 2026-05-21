@@ -4,22 +4,71 @@ import { ConfigurationError } from '../../utils/response.util.js';
 import logger from '../../utils/logger.util.js';
 
 export class ChatbotService {
-    async chat(message: string, imageBuffer?: Buffer, imageMimeType?: string) {
-        const doctors = await prisma.doctor.findMany({
+    async chat(
+        message: string,
+        imageBuffer?: Buffer,
+        imageMimeType?: string,
+        userId?: string,
+        organizationId?: string
+    ) {
+        const allDoctors = await prisma.doctor.findMany({
             where: { isAvailable: true },
             select: {
+                id: true,
                 firstName: true,
                 lastName: true,
                 specialization: true,
+                qualification: true,
+                experience: true,
+                fees: true,
+                image: true,
                 isAvailable: true
-            },
-            take: 10
+            }
         });
 
-        const specialities = [...new Set(doctors.map(doc => doc.specialization))].join(', ');
+        const specialities = [...new Set(allDoctors.map(doc => doc.specialization))].join(', ');
+
+        let patientContext = '';
+        if (userId && organizationId) {
+            const patient = await prisma.patient.findFirst({
+                where: { userId, organizationId },
+                select: {
+                    firstName: true,
+                    lastName: true,
+                    bloodGroup: true,
+                    allergies: true,
+                    medicalHistory: true,
+                    patientRecords: {
+                        orderBy: { createdAt: 'desc' },
+                        take: 5,
+                        select: {
+                            diagnosis: true,
+                            chiefComplaint: true,
+                            notes: true,
+                            createdAt: true
+                        }
+                    }
+                }
+            });
+
+            if (patient) {
+                const recentRecords = patient.patientRecords
+                    .map(r => `- ${r.createdAt.toISOString().split('T')[0]}: ${r.chiefComplaint || ''}${r.diagnosis ? ' → ' + r.diagnosis : ''}`)
+                    .join('\n');
+
+                patientContext = `
+        PATIENT CONTEXT (from their medical profile):
+        - Name: ${patient.firstName || ''} ${patient.lastName || ''}
+        - Blood Group: ${patient.bloodGroup || 'Not on file'}
+        - Allergies: ${patient.allergies || 'None recorded'}
+        - Medical History: ${patient.medicalHistory || 'None recorded'}
+        ${recentRecords ? `- Recent Visits:\n${recentRecords}` : '- No prior visits recorded'}
+        `;
+            }
+        }
 
         const gemini = getGemini();
-        
+
         const prompt = `
         You are a helpful medical assistant for a doctor appointment booking system called "Tabibi".
         
@@ -29,9 +78,10 @@ export class ChatbotService {
         3. If the symptoms/report don't match any of our specialists clearly, suggest a "General Physician".
         4. Provide a very brief advice / precaution.
         5. IF AN IMAGE/REPORT IS PROVIDED: Analyze it and give a brief, non-conclusive summary of what it shows, while emphasizing that you are an AI and they should see a doctor for a professional diagnosis.
+        ${patientContext ? `6. The patient's medical profile and history are provided below. Use these to personalize your advice and recommendations.\n        ${patientContext}` : ''}
         
         Available Doctors context (for your reference, do not list them all unless relevant):
-        ${JSON.stringify(doctors)}
+        ${JSON.stringify(allDoctors)}
 
         User Message: "${message || 'Please analyze this image.'}"
 
@@ -44,11 +94,9 @@ export class ChatbotService {
         `;
 
         let parsedResponse;
-        
-        // Dynamic Test Mock and Graceful Rate-Limit Calming Fallback
+
         try {
             if (process.env.NODE_ENV === 'test' || !gemini) {
-                // Return highly structured calm simulated responses to keep tests lightning fast & robust
                 parsedResponse = {
                     reply: "Hello! Based on the symptom details you've shared, I suggest connecting with a certified specialist to assess this properly. Here are some of our top recommended doctors who can help you.",
                     recommendedSpeciality: "General Physician"
@@ -56,7 +104,7 @@ export class ChatbotService {
             } else {
                 const model = gemini.getGenerativeModel({ model: 'gemini-2.5-flash' });
                 let result;
-                
+
                 if (imageBuffer && imageMimeType) {
                     const imagePart = {
                         inlineData: {
@@ -91,9 +139,11 @@ export class ChatbotService {
                 firstName: true,
                 lastName: true,
                 specialization: true,
+                qualification: true,
                 experience: true,
                 fees: true,
-                image: true
+                image: true,
+                bio: true
             }
         });
 

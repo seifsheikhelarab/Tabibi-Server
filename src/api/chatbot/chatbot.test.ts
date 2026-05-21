@@ -78,6 +78,8 @@ describe('Chatbot API', () => {
         expect([200, 500]).toContain(response.status);
         if (response.status === 200) {
             expect(response.body.data).toHaveProperty('response');
+            expect(response.body.data).toHaveProperty('doctors');
+            expect(Array.isArray(response.body.data.doctors)).toBe(true);
         }
     });
 
@@ -95,6 +97,8 @@ describe('Chatbot API', () => {
         expect([200, 500]).toContain(response.status);
         if (response.status === 200) {
             expect(response.body.data).toHaveProperty('response');
+            expect(response.body.data).toHaveProperty('doctors');
+            expect(Array.isArray(response.body.data.doctors)).toBe(true);
         }
     });
 
