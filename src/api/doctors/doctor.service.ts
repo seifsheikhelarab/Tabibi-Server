@@ -28,7 +28,7 @@ export class DoctorService {
     }
 
     async findAll(query: DoctorQueryInput) {
-        const { page, limit, search, specialization, organizationId, isAvailable, allowPublic, city, maxFees } = query;
+        const { page, limit, search, specialization, organizationId, isAvailable, allowPublic, maxFees, minRating, sort } = query;
         const skip = (page - 1) * limit;
 
         const where = allowPublic
@@ -59,12 +59,23 @@ export class DoctorService {
                 })
             };
 
+        // Determine sort order
+        let orderBy: any = { createdAt: 'desc' as const };
+        if (sort === 'rating_desc') {
+            // Rating sort is handled post-query since it aggregates reviews
+            orderBy = { createdAt: 'desc' };
+        } else if (sort === 'fees_asc') {
+            orderBy = { fees: 'asc' as const };
+        } else if (sort === 'experience_desc') {
+            orderBy = { experience: 'desc' as const };
+        }
+
         const [doctors, total] = await Promise.all([
             prisma.doctor.findMany({
                 where,
                 skip,
                 take: limit,
-                orderBy: { createdAt: 'desc' },
+                orderBy,
                 include: {
                     user: { select: { id: true, email: true, image: true } },
                     reviews: {
@@ -82,34 +93,49 @@ export class DoctorService {
             organizationId
         });
 
+        // Normalize doctors and compute ratings
+        let mapped = doctors.map(d => {
+            const numRatings = d.reviews.length;
+            const totalRating = d.reviews.reduce((acc, r) => acc + r.rating, 0);
+            const avgRating = numRatings > 0 ? totalRating / numRatings : 0;
+            
+            return {
+                id: d.id,
+                firstName: d.firstName,
+                lastName: d.lastName,
+                name: `${d.firstName} ${d.lastName || ''}`.trim(),
+                email: d.email,
+                phone: d.phone,
+                specialization: d.specialization,
+                qualification: d.qualification,
+                experience: d.experience,
+                fees: d.fees,
+                bio: d.bio,
+                image: d.image || d.user?.image || null,
+                available: d.isAvailable,
+                isAvailable: d.isAvailable,
+                location: "Location not listed",
+                city: "",
+                address: "",
+                createdAt: d.createdAt,
+                rating: totalRating,
+                avgRating,
+                numRatings: numRatings
+            };
+        });
+
+        // Post-filter by minimum rating
+        if (minRating !== undefined) {
+            mapped = mapped.filter(d => d.avgRating >= minRating);
+        }
+
+        // Post-sort by rating if needed
+        if (sort === 'rating_desc') {
+            mapped.sort((a, b) => b.avgRating - a.avgRating);
+        }
+
         return {
-            data: doctors.map(d => {
-                const numRatings = d.reviews.length;
-                const totalRating = d.reviews.reduce((acc, r) => acc + r.rating, 0);
-                
-                return {
-                    id: d.id,
-                    firstName: d.firstName,
-                    lastName: d.lastName,
-                    name: `${d.firstName} ${d.lastName || ''}`.trim(),
-                    email: d.email,
-                    phone: d.phone,
-                    specialization: d.specialization,
-                    qualification: d.qualification,
-                    experience: d.experience,
-                    fees: d.fees,
-                    bio: d.bio,
-                    image: d.image || d.user?.image || null,
-                    available: d.isAvailable,
-                    isAvailable: d.isAvailable,
-                    location: "Location not listed",
-                    city: "",
-                    address: "",
-                    createdAt: d.createdAt,
-                    rating: totalRating,
-                    numRatings: numRatings
-                };
-            }),
+            data: mapped,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
         };
     }

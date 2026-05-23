@@ -26,6 +26,7 @@ export const doctorQuerySchema = z.object({
     city: z.string().optional(),
     minRating: z.coerce.number().optional(),
     maxFees: z.coerce.number().optional(),
+    sort: z.string().optional(),
     organizationId: z.string().optional(),
     allowPublic: z.coerce.boolean().optional()
 });

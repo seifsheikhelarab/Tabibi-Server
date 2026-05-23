@@ -18,6 +18,7 @@ import ratingRouter from './ratings/rating.router.js';
 import membersRouter from './members/members.router.js';
 import receptionRouter from './reception/reception.router.js';
 import customAuthRouter from './auth/custom-auth.router.js';
+import chatRouter from './chat/chat.router.js';
 
 const router = Router();
 
@@ -40,6 +41,7 @@ router.use('/doctor', adminDoctorRouter);
 router.use('/members', membersRouter);
 router.use('/reception', receptionRouter);
 router.use('/ratings', ratingRouter);
+router.use('/chat', chatRouter);
 
 router.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

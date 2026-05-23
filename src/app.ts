@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
@@ -15,6 +16,7 @@ import { toNodeHandler } from 'better-auth/node';
 import { auth } from './config/auth.config.js';
 import { initCloudinary, initRazorpay, initStripe, initGemini } from './config/integrations.config.js';
 import paymentRouter from './api/payments/payment.router.js';
+import { initSocket } from './config/socket.js';
 
 checkEnv();
 
@@ -77,14 +79,18 @@ export async function startServer(): Promise<void> {
         await prisma.$queryRaw`SELECT 1`;
         logger.info('[Init] PostgreSQL connected successfully');
 
-        const server = app.listen(env.port, async () => {
+        // Create HTTP server and initialize Socket.IO
+        const httpServer = createServer(app);
+        initSocket(httpServer);
+
+        httpServer.listen(env.port, async () => {
             logger.info(`[Init] Server running on http://localhost:${env.port}`);
             logger.info(`[Init] API docs at http://localhost:${env.port}/api-docs`);
         });
 
         process.on('SIGTERM', async () => {
             logger.info('SIGTERM received, shutting down gracefully...');
-            server.close(async () => {
+            httpServer.close(async () => {
                 await prisma.$disconnect();
                 logger.info('Server closed');
                 process.exit(0);
@@ -93,7 +99,7 @@ export async function startServer(): Promise<void> {
 
         process.on('SIGINT', async () => {
             logger.info('SIGINT received, shutting down gracefully...');
-            server.close(async () => {
+            httpServer.close(async () => {
                 await prisma.$disconnect();
                 logger.info('Server closed');
                 process.exit(0);

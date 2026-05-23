@@ -27,6 +27,8 @@ model User {
   sessions       Session[]
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  chats      Chat[]
+
   @@index([email])
   @@index([organizationId])
   @@map("user")
@@ -185,6 +187,7 @@ model Doctor {
   reviews        DoctorReview[]
   patientRecords PatientRecord[]
   prescriptions  Prescription[]
+  chats          Chat[]
 
   @@unique([userId, organizationId])
   @@index([organizationId])
@@ -586,4 +589,40 @@ enum SyncDirection {
   PUSH
   PULL
   BIDIRECTIONAL
+}
+
+enum SenderType {
+  USER
+  DOCTOR
+}
+
+model Chat {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userFromId  String
+  doctorId    String
+  lastMessage String    @default("")
+  userFrom    User      @relation(fields: [userFromId], references: [id], onDelete: Cascade)
+  doctor      Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  messages    Message[]
+
+  @@unique([userFromId, doctorId])
+  @@index([userFromId])
+  @@index([doctorId])
+  @@map("chat")
+}
+
+model Message {
+  id         String     @id @default(cuid())
+  createdAt  DateTime   @default(now())
+  chatId     String
+  senderId   String
+  senderType SenderType
+  content    String     @default("")
+  image      String     @default("")
+  chat       Chat       @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+  @@map("message")
 }
