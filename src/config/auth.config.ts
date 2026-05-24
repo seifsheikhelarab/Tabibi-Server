@@ -9,15 +9,11 @@ function generateSlug(name: string): string {
     return `${base}-${random}`;
 }
 
-const getBaseURL = () => {
-    if (process.env.VERCEL_URL) {
-        return `https://${process.env.VERCEL_URL}`;
-    }
-    return process.env.BETTER_AUTH_URL || 'http://localhost:3000';
-};
-
-const getTrustedOrigins = (): string[] => {
-    const defaults = [
+export const auth = betterAuth({
+    database: prismaAdapter(prisma, {
+        provider: "postgresql"
+    }),
+    trustedOrigins: [
         'http://localhost:5173',
         'http://localhost:5174', 
         'http://localhost:5175',
@@ -27,22 +23,7 @@ const getTrustedOrigins = (): string[] => {
         'https://tabibi-client.vercel.app',
         'https://tabibi-admin.vercel.app',
         'https://tabibi-server.vercel.app'
-    ];
-    
-    if (process.env.CORS_ORIGIN) {
-        const envOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
-        return [...new Set([...defaults, ...envOrigins])];
-    }
-    
-    return defaults;
-};
-
-export const auth = betterAuth({
-    database: prismaAdapter(prisma, {
-        provider: "postgresql"
-    }),
-    baseURL: getBaseURL(),
-    trustedOrigins: getTrustedOrigins(),
+    ],
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: false
