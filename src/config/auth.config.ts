@@ -43,7 +43,6 @@ export const auth = betterAuth({
     }),
     baseURL: getBaseURL(),
     trustedOrigins: getTrustedOrigins(),
-    cookiePrefix: 'tabibi-auth',
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: false
