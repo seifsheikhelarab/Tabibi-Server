@@ -42,7 +42,7 @@ export function getRazorpay() {
 export function initStripe() {
     if (env.stripeSecretKey) {
         stripeInstance = new Stripe(env.stripeSecretKey, {
-            apiVersion: '2026-03-25.dahlia'
+            apiVersion: '2026-04-22.dahlia'
         });
     }
     return stripeInstance;
