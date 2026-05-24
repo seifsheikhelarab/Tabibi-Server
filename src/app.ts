@@ -27,25 +27,6 @@ initGemini();
 
 const app = express();
 
-app.use(
-    helmet({
-        contentSecurityPolicy: {
-            directives: {
-                'script-src': [
-                    "'self'",
-                    "'unsafe-inline'",
-                    'https://cdn.jsdelivr.net'
-                ],
-                'script-src-elem': [
-                    "'self'",
-                    "'unsafe-inline'",
-                    'https://cdn.jsdelivr.net'
-                ]
-            }
-        }
-    })
-);
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
@@ -60,13 +41,12 @@ const corsOptions = {
         'https://tabibi-admin.vercel.app',
         'https://tabibi-server.vercel.app'
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-organization-id', 'atoken']
 };
+app.use(cors(corsOptions));
 
-app.use('/api/auth/*splat', cors(corsOptions), toNodeHandler(auth));
-app.use('/api', cors(corsOptions), apiRouter);
+app.use('/api/auth/*splat', toNodeHandler(auth));
+app.use('/api', apiRouter);
 
 app.use(pinoHttp({ logger }));
 

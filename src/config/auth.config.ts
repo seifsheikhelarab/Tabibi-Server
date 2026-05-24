@@ -37,14 +37,19 @@ export const auth = betterAuth({
             : undefined
     },
     session: {
-            cookieCache: {
-                enabled: true,
-                maxAge: 5 * 60 * 60 * 24
-        }
+        cookieCache: {
+            enabled: true,
+            maxAge: 5 * 60 * 60 * 24,
+        },
     },
     advanced: {
-            disableCSRFCheck: true,
+        disableCSRFCheck: true,
+        useSecureCookies: process.env.NODE_ENV === 'production',
+        defaultCookieAttributes: {
+            sameSite: 'none',
+            secure: process.env.NODE_ENV === 'production',
         },
+    },
     plugins: [
         bearer(),
         organization({
