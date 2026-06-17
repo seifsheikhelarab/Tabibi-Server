@@ -3,6 +3,7 @@ import Razorpay from 'razorpay';
 import Stripe from 'stripe';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from './env.config.js';
+import logger from '../utils/logger.util.js';
 
 let razorpayInstance: Razorpay | null = null;
 let stripeInstance: Stripe | null = null;
@@ -15,6 +16,9 @@ export function initCloudinary() {
             api_key: env.cloudinaryApiKey,
             api_secret: env.cloudinarySecretKey
         });
+        logger.info('[Init] Cloudinary configured successfully');
+    } else {
+        logger.warn('[Init] Cloudinary not configured: missing CLOUDINARY_NAME, CLOUDINARY_API_KEY, or CLOUDINARY_API_SECRET');
     }
 }
 

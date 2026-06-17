@@ -27,7 +27,7 @@ export const env = {
 
     cloudinaryName: process.env.CLOUDINARY_NAME,
     cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
-    cloudinarySecretKey: process.env.CLOUDINARY_SECRET_KEY,
+    cloudinarySecretKey: process.env.CLOUDINARY_API_SECRET,
 
     razorpayKeyId: process.env.RAZORPAY_KEY_ID,
     razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET,
