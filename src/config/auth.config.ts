@@ -1,5 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { organization, customSession, bearer, admin } from 'better-auth/plugins';
+import { createAccessControl } from 'better-auth/plugins/access';
+import { defaultStatements, adminAc } from 'better-auth/plugins/admin/access';
 import { prismaAdapter } from '@better-auth/prisma-adapter';
 import prisma from './prisma.config.js';
 
@@ -53,7 +55,11 @@ export const auth = betterAuth({
     plugins: [
         bearer(),
         admin({
-            adminRoles: ['ADMIN', 'OWNER']
+            ac: createAccessControl(defaultStatements),
+            roles: {
+                ADMIN: adminAc,
+                OWNER: adminAc,
+            },
         }),
         organization({
             allowUserToCreateOrganization: true,
