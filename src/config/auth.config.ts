@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth';
-import { organization, customSession, bearer } from 'better-auth/plugins';
+import { organization, customSession, bearer, admin } from 'better-auth/plugins';
 import { prismaAdapter } from '@better-auth/prisma-adapter';
 import prisma from './prisma.config.js';
 
@@ -52,6 +52,7 @@ export const auth = betterAuth({
     },
     plugins: [
         bearer(),
+        admin(),
         organization({
             allowUserToCreateOrganization: true,
             organizationLimit: 10,
