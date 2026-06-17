@@ -308,55 +308,8 @@ adminRouter.post('/add-doctor',
 
         let user = email ? await prisma.user.findUnique({ where: { email } }) : null;
 
-        // Handle user creation/password via Better Auth API
-        if (password && email) {
-            if (!user) {
-                // Create user via Better Auth signUpEmail (handles password hashing and account creation)
-                await auth.api.signUpEmail({
-                    body: {
-                        email,
-                        password,
-                        name: `${firstName} ${lastName}`.trim()
-                    }
-                });
-
-                const createdUser = await prisma.user.findUnique({ where: { email } });
-                if (!createdUser) {
-                    return ResponseHandler.error(res, 'Failed to create user', ErrorCode.SERVER_ERROR, 500);
-                }
-                user = createdUser;
-
-                // Clean up auto-created organization and membership from the database hook
-                const autoMemberships = await prisma.member.findMany({
-                    where: { userId: user.id }
-                });
-                for (const membership of autoMemberships) {
-                    await prisma.member.delete({
-                        where: { id: membership.id }
-                    });
-                    await prisma.organization.delete({
-                        where: { id: membership.organizationId }
-                    }).catch(() => {});
-                }
-
-                // Set the correct role and organization
-                await prisma.user.update({
-                    where: { id: user.id },
-                    data: { role: 'DOCTOR', organizationId, phone }
-                });
-            } else {
-                // User already exists - set password via Better Auth admin API
-                const headers = fromNodeHeaders(getAuthHeaders(req));
-                await auth.api.setUserPassword({
-                    body: {
-                        userId: user.id,
-                        newPassword: password
-                    },
-                    headers
-                });
-            }
-        } else if (!user) {
-            // No password - create user directly via Prisma
+        // Create user if doesn't exist
+        if (!user) {
             user = await prisma.user.create({
                 data: {
                     email: email || `doctor_${Date.now()}@temp.com`,
@@ -368,8 +321,16 @@ adminRouter.post('/add-doctor',
             });
         }
 
-        if (!user) {
-            return ResponseHandler.error(res, 'Failed to create or find user', ErrorCode.SERVER_ERROR, 500);
+        // If password is provided, set it via Better Auth admin API (handles hashing and account creation)
+        if (password) {
+            const headers = fromNodeHeaders(getAuthHeaders(req));
+            await auth.api.setUserPassword({
+                body: {
+                    userId: user.id,
+                    newPassword: password
+                },
+                headers
+            });
         }
 
         const doctor = await prisma.doctor.create({

@@ -60,6 +60,7 @@ export const auth = betterAuth({
                 ADMIN: adminAc,
                 OWNER: adminAc,
             },
+            defaultRole: 'MEMBER',
         }),
         organization({
             allowUserToCreateOrganization: true,
