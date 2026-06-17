@@ -52,7 +52,9 @@ export const auth = betterAuth({
     },
     plugins: [
         bearer(),
-        admin(),
+        admin({
+            adminRoles: ['ADMIN', 'OWNER']
+        }),
         organization({
             allowUserToCreateOrganization: true,
             organizationLimit: 10,
