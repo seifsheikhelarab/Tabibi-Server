@@ -1,9 +1,16 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { protect, requireActiveOrganization, requireAdmin, type AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 import { asyncHandler } from '../../middlewares/error.middleware.js';
 import { ResponseHandler, ErrorCode } from '../../utils/response.util.js';
 import prisma from '../../config/prisma.config.js';
 import { auth } from '../../config/auth.config.js';
+import { uploadService } from '../upload/upload.service.js';
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }
+});
 
 function getAuthHeaders(req: any): Record<string, string> {
     const headers: Record<string, string> = {};
@@ -270,91 +277,164 @@ adminRouter.post('/delete-doctor', protect, requireActiveOrganization(), require
 }));
 
 // Add new doctor
-adminRouter.post('/add-doctor', protect, requireActiveOrganization(), requireAdmin(), asyncHandler(async (req: AuthenticatedRequest, res) => {
-    const { firstName, lastName, email, phone, specialization, qualification, experience, fees, bio, image } = req.body;
-    const organizationId = req.session.activeOrganizationId as string;
+adminRouter.post('/add-doctor',
+    protect,
+    requireActiveOrganization(),
+    requireAdmin(),
+    upload.single('image'),
+    asyncHandler(async (req: AuthenticatedRequest, res) => {
+        const { firstName, lastName, email, phone, specialization, qualification, experience, fees, bio, password } = req.body;
+        const organizationId = req.session.activeOrganizationId as string;
 
-    const existingDoctor = await prisma.doctor.findFirst({
-        where: { email, organizationId }
-    });
+        // Handle image upload if a file was provided
+        let imageUrl = '';
+        if (req.file) {
+            const result = await uploadService.uploadImage(
+                req.file.buffer,
+                req.file.originalname,
+                'tabibi/doctors'
+            );
+            imageUrl = result.secureUrl;
+        }
 
-    if (existingDoctor) {
-        return ResponseHandler.error(res, 'Doctor with this email already exists', ErrorCode.RESOURCE_ALREADY_EXISTS, 400);
-    }
+        const existingDoctor = await prisma.doctor.findFirst({
+            where: { email, organizationId }
+        });
 
-    let user = email ? await prisma.user.findUnique({ where: { email } }) : null;
-    if (!user) {
-        user = await prisma.user.create({
+        if (existingDoctor) {
+            return ResponseHandler.error(res, 'Doctor with this email already exists', ErrorCode.RESOURCE_ALREADY_EXISTS, 400);
+        }
+
+        let user = email ? await prisma.user.findUnique({ where: { email } }) : null;
+        if (!user) {
+            user = await prisma.user.create({
+                data: {
+                    email: email || `doctor_${Date.now()}@temp.com`,
+                    name: `${firstName} ${lastName}`.trim(),
+                    phone,
+                    role: 'DOCTOR',
+                    organizationId
+                }
+            });
+        }
+
+        // If password is provided, hash it and create an Account record for email/password auth
+        if (password && email) {
+            const hashedPassword = await Bun.password.hash(password);
+            const existingAccount = await prisma.account.findFirst({
+                where: { userId: user.id, providerId: 'email' }
+            });
+            if (!existingAccount) {
+                await prisma.account.create({
+                    data: {
+                        userId: user.id,
+                        providerId: 'email',
+                        accountId: email,
+                        password: hashedPassword
+                    }
+                });
+            }
+        }
+
+        const doctor = await prisma.doctor.create({
             data: {
-                email: email || `doctor_${Date.now()}@temp.com`,
-                name: `${firstName} ${lastName}`.trim(),
+                userId: user.id,
+                firstName,
+                lastName,
+                email,
                 phone,
-                role: 'DOCTOR',
-                organizationId
+                specialization,
+                qualification,
+                experience: experience ? parseInt(experience) : undefined,
+                fees: fees ? Number(fees) : undefined,
+                bio,
+                image: imageUrl || undefined,
+                organizationId,
+                isAvailable: true
             }
         });
-    }
 
-    const doctor = await prisma.doctor.create({
-        data: {
-            userId: user.id,
-            firstName,
-            lastName,
-            email,
-            phone,
-            specialization,
-            qualification,
-            experience,
-            fees,
-            bio,
-            image,
-            organizationId,
-            isAvailable: true
-        }
-    });
-
-    return ResponseHandler.success(res, {
-        success: true,
-        message: 'Doctor added successfully',
-        doctor: { _id: doctor.id, ...doctor }
-    });
-}));
+        return ResponseHandler.success(res, {
+            success: true,
+            message: 'Doctor added successfully',
+            doctor: { _id: doctor.id, ...doctor }
+        });
+    }));
 
 // Update doctor
-adminRouter.post('/update-doctor', protect, requireActiveOrganization(), requireAdmin(), asyncHandler(async (req: AuthenticatedRequest, res) => {
-    const { docId, firstName, lastName, email, phone, specialization, qualification, experience, fees, bio, image, isAvailable } = req.body;
-    const organizationId = req.session.activeOrganizationId as string;
+adminRouter.post('/update-doctor',
+    protect,
+    requireActiveOrganization(),
+    requireAdmin(),
+    upload.single('image'),
+    asyncHandler(async (req: AuthenticatedRequest, res) => {
+        const { docId, firstName, lastName, email, phone, specialization, qualification, experience, fees, bio, isAvailable, password } = req.body;
+        const organizationId = req.session.activeOrganizationId as string;
 
-    const doctor = await prisma.doctor.findFirst({
-        where: { id: docId, organizationId }
-    });
+        const doctor = await prisma.doctor.findFirst({
+            where: { id: docId, organizationId }
+        });
 
-    if (!doctor) {
-        return ResponseHandler.error(res, 'Doctor not found', ErrorCode.RESOURCE_NOT_FOUND, 404);
-    }
-
-    const updated = await prisma.doctor.update({
-        where: { id: docId },
-        data: {
-            ...(firstName && { firstName }),
-            ...(lastName && { lastName }),
-            ...(email && { email }),
-            ...(phone && { phone }),
-            ...(specialization && { specialization }),
-            ...(qualification && { qualification }),
-            ...(experience !== undefined && { experience }),
-            ...(fees !== undefined && { fees }),
-            ...(bio && { bio }),
-            ...(image && { image }),
-            ...(isAvailable !== undefined && { isAvailable })
+        if (!doctor) {
+            return ResponseHandler.error(res, 'Doctor not found', ErrorCode.RESOURCE_NOT_FOUND, 404);
         }
-    });
 
-    return ResponseHandler.success(res, {
-        success: true,
-        message: 'Doctor updated successfully',
-        doctor: { _id: updated.id, ...updated }
-    });
-}));
+        // Handle image upload if a new file was provided
+        let imageUrl = '';
+        if (req.file) {
+            const result = await uploadService.uploadImage(
+                req.file.buffer,
+                req.file.originalname,
+                'tabibi/doctors'
+            );
+            imageUrl = result.secureUrl;
+        }
+
+        // If password is provided, hash it and upsert the Account record for email/password auth
+        if (password && email) {
+            const hashedPassword = await Bun.password.hash(password);
+            const existingAccount = await prisma.account.findFirst({
+                where: { userId: doctor.userId, providerId: 'email' }
+            });
+            if (existingAccount) {
+                await prisma.account.update({
+                    where: { id: existingAccount.id },
+                    data: { password: hashedPassword }
+                });
+            } else {
+                await prisma.account.create({
+                    data: {
+                        userId: doctor.userId,
+                        providerId: 'email',
+                        accountId: email || doctor.email || '',
+                        password: hashedPassword
+                    }
+                });
+            }
+        }
+
+        const updated = await prisma.doctor.update({
+            where: { id: docId },
+            data: {
+                ...(firstName && { firstName }),
+                ...(lastName && { lastName }),
+                ...(email && { email }),
+                ...(phone && { phone }),
+                ...(specialization && { specialization }),
+                ...(qualification && { qualification }),
+                ...(experience !== undefined && { experience: parseInt(experience) }),
+                ...(fees !== undefined && { fees: Number(fees) }),
+                ...(bio && { bio }),
+                ...(imageUrl && { image: imageUrl }),
+                ...(isAvailable !== undefined && { isAvailable })
+            }
+        });
+
+        return ResponseHandler.success(res, {
+            success: true,
+            message: 'Doctor updated successfully',
+            doctor: { _id: updated.id, ...updated }
+        });
+    }));
 
 export default adminRouter;
